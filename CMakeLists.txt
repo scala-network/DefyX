@@ -179,7 +179,7 @@ int main() {
 }" HAVE_CXX_ATOMICS)
 
 if(NOT HAVE_CXX_ATOMICS)
-  target_link_libraries(DefyX-benchmark
+  target_link_libraries(defyx-benchmark
     PRIVATE "atomic")
 endif()
 set_property(TARGET defyx-benchmark PROPERTY POSITION_INDEPENDENT_CODE ON)
