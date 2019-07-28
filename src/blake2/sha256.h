@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: src/lib/libmd/sha256.h,v 1.2 2006/01/17 15:35:56 phk Exp $
+ * $FreeBSD: src/lib/libmd/sha256_Y.h,v 1.2 2006/01/17 15:35:56 phk Exp $
  */
 
 #ifndef _SHA256_H_
@@ -37,19 +37,19 @@ typedef struct SHA256Context {
 	uint32_t state[8];
 	uint32_t count[2];
 	unsigned char buf[64];
-} SHA256_CTX;
+} SHA256_CTX_Y;
 
 typedef struct HMAC_SHA256Context {
-	SHA256_CTX ictx;
-	SHA256_CTX octx;
-} HMAC_SHA256_CTX;
+	SHA256_CTX_Y ictx;
+	SHA256_CTX_Y octx;
+} HMAC_SHA256_CTX_Y;
 
-void	SHA256_Init(SHA256_CTX *);
-void	SHA256_Update(SHA256_CTX *, const void *, size_t);
-void	SHA256_Final(unsigned char [32], SHA256_CTX *);
-void	HMAC_SHA256_Init(HMAC_SHA256_CTX *, const void *, size_t);
-void	HMAC_SHA256_Update(HMAC_SHA256_CTX *, const void *, size_t);
-void	HMAC_SHA256_Final(unsigned char [32], HMAC_SHA256_CTX *);
+void	SHA256_Init_Y(SHA256_CTX_Y *);
+void	SHA256_Update_Y(SHA256_CTX_Y *, const void *, size_t);
+void	SHA256_Final_Y(unsigned char [32], SHA256_CTX_Y *);
+void	HMAC_SHA256_Init_Y(HMAC_SHA256_CTX_Y *, const void *, size_t);
+void	HMAC_SHA256_Update_Y(HMAC_SHA256_CTX_Y *, const void *, size_t);
+void	HMAC_SHA256_Final_Y(unsigned char [32], HMAC_SHA256_CTX_Y *);
 
 /**
  * PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, c, buf, dkLen):
