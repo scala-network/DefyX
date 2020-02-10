@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "instruction.hpp"
 #include "program.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	//register file in machine byte order
 	struct NativeRegisterFile {

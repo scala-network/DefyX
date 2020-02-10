@@ -44,155 +44,160 @@ typedef enum {
   RANDOMX_FLAG_HARD_AES = 2,
   RANDOMX_FLAG_FULL_MEM = 4,
   RANDOMX_FLAG_JIT = 8,
-} defyx_flags;
+  RANDOMX_FLAG_SECURE = 16
+} randomx_flags;
 
-typedef struct defyx_dataset defyx_dataset;
-typedef struct defyx_cache defyx_cache;
-typedef struct defyx_vm defyx_vm;
+typedef struct randomx_dataset randomx_dataset;
+typedef struct randomx_cache randomx_cache;
+typedef struct randomx_vm randomx_vm;
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 /**
- * Creates a defyx_cache structure and allocates memory for DefyX Cache.
+ * Creates a randomx_cache structure and allocates memory for RandomX Cache.
  *
  * @param flags is any combination of these 2 flags (each flag can be set or not set):
  *        RANDOMX_FLAG_LARGE_PAGES - allocate memory in large pages
  *        RANDOMX_FLAG_JIT - create cache structure with JIT compilation support; this makes
  *                           subsequent Dataset initialization faster
  *
- * @return Pointer to an allocated defyx_cache structure.
+ * @return Pointer to an allocated randomx_cache structure.
  *         NULL is returned if memory allocation fails or if the RANDOMX_FLAG_JIT
  *         is set and JIT compilation is not supported on the current platform.
  */
-RANDOMX_EXPORT defyx_cache *defyx_alloc_cache(defyx_flags flags);
+RANDOMX_EXPORT randomx_cache *randomx_alloc_cache(randomx_flags flags);
 
 /**
  * Initializes the cache memory and SuperscalarHash using the provided key value.
+ * Does nothing if called again with the same key value.
  *
- * @param cache is a pointer to a previously allocated defyx_cache structure. Must not be NULL.
+ * @param cache is a pointer to a previously allocated randomx_cache structure. Must not be NULL.
  * @param key is a pointer to memory which contains the key value. Must not be NULL.
  * @param keySize is the number of bytes of the key.
 */
-RANDOMX_EXPORT void defyx_init_cache(defyx_cache *cache, const void *key, size_t keySize);
+RANDOMX_EXPORT void randomx_init_cache(randomx_cache *cache, const void *key, size_t keySize);
 
 /**
- * Releases all memory occupied by the defyx_cache structure.
+ * Releases all memory occupied by the randomx_cache structure.
  *
- * @param cache is a pointer to a previously allocated defyx_cache structure.
+ * @param cache is a pointer to a previously allocated randomx_cache structure.
 */
-RANDOMX_EXPORT void defyx_release_cache(defyx_cache* cache);
+RANDOMX_EXPORT void randomx_release_cache(randomx_cache* cache);
 
 /**
- * Creates a defyx_dataset structure and allocates memory for DefyX Dataset.
+ * Creates a randomx_dataset structure and allocates memory for RandomX Dataset.
  *
  * @param flags is the initialization flags. Only one flag is supported (can be set or not set):
  *        RANDOMX_FLAG_LARGE_PAGES - allocate memory in large pages
  *
- * @return Pointer to an allocated defyx_dataset structure.
+ * @return Pointer to an allocated randomx_dataset structure.
  *         NULL is returned if memory allocation fails.
  */
-RANDOMX_EXPORT defyx_dataset *defyx_alloc_dataset(defyx_flags flags);
+RANDOMX_EXPORT randomx_dataset *randomx_alloc_dataset(randomx_flags flags);
 
 /**
  * Gets the number of items contained in the dataset.
  *
  * @return the number of items contained in the dataset.
 */
-RANDOMX_EXPORT unsigned long defyx_dataset_item_count(void);
+RANDOMX_EXPORT unsigned long randomx_dataset_item_count(void);
 
 /**
  * Initializes dataset items.
  *
- * Note: In order to use the Dataset, all items from 0 to (defyx_dataset_item_count() - 1) must be initialized.
+ * Note: In order to use the Dataset, all items from 0 to (randomx_dataset_item_count() - 1) must be initialized.
  * This may be done by several calls to this function using non-overlapping item sequences.
  *
- * @param dataset is a pointer to a previously allocated defyx_dataset structure. Must not be NULL.
- * @param cache is a pointer to a previously allocated and initialized defyx_cache structure. Must not be NULL.
+ * @param dataset is a pointer to a previously allocated randomx_dataset structure. Must not be NULL.
+ * @param cache is a pointer to a previously allocated and initialized randomx_cache structure. Must not be NULL.
  * @param startItem is the item number where intialization should start.
  * @param itemCount is the number of items that should be initialized.
 */
-RANDOMX_EXPORT void defyx_init_dataset(defyx_dataset *dataset, defyx_cache *cache, unsigned long startItem, unsigned long itemCount);
+RANDOMX_EXPORT void randomx_init_dataset(randomx_dataset *dataset, randomx_cache *cache, unsigned long startItem, unsigned long itemCount);
 
 /**
  * Returns a pointer to the internal memory buffer of the dataset structure. The size
- * of the internal memory buffer is defyx_dataset_item_count() * RANDOMX_DATASET_ITEM_SIZE.
+ * of the internal memory buffer is randomx_dataset_item_count() * RANDOMX_DATASET_ITEM_SIZE.
  *
- * @param dataset is dataset is a pointer to a previously allocated defyx_dataset structure. Must not be NULL.
+ * @param dataset is a pointer to a previously allocated randomx_dataset structure. Must not be NULL.
  *
  * @return Pointer to the internal memory buffer of the dataset structure.
 */
-RANDOMX_EXPORT void *defyx_get_dataset_memory(defyx_dataset *dataset);
+RANDOMX_EXPORT void *randomx_get_dataset_memory(randomx_dataset *dataset);
 
 /**
- * Releases all memory occupied by the defyx_dataset structure.
+ * Releases all memory occupied by the randomx_dataset structure.
  *
- * @param dataset is a pointer to a previously allocated defyx_dataset structure.
+ * @param dataset is a pointer to a previously allocated randomx_dataset structure.
 */
-RANDOMX_EXPORT void defyx_release_dataset(defyx_dataset *dataset);
+RANDOMX_EXPORT void randomx_release_dataset(randomx_dataset *dataset);
 
 /**
- * Creates and initializes a DefyX virtual machine.
+ * Creates and initializes a RandomX virtual machine.
  *
- * @param flags is any combination of these 4 flags (each flag can be set or not set):
+ * @param flags is any combination of these 5 flags (each flag can be set or not set):
  *        RANDOMX_FLAG_LARGE_PAGES - allocate scratchpad memory in large pages
  *        RANDOMX_FLAG_HARD_AES - virtual machine will use hardware accelerated AES
  *        RANDOMX_FLAG_FULL_MEM - virtual machine will use the full dataset
  *        RANDOMX_FLAG_JIT - virtual machine will use a JIT compiler
- *        The numeric values of the flags are ordered so that a higher value will provide
+ *        RANDOMX_FLAG_SECURE - when combined with RANDOMX_FLAG_JIT, the JIT pages are never
+ *                              writable and executable at the same time (W^X policy)
+ *        The numeric values of the first 4 flags are ordered so that a higher value will provide
  *        faster hash calculation and a lower numeric value will provide higher portability.
  *        Using RANDOMX_FLAG_DEFAULT (all flags not set) works on all platforms, but is the slowest.
- * @param cache is a pointer to an initialized defyx_cache structure. Can be
+ * @param cache is a pointer to an initialized randomx_cache structure. Can be
  *        NULL if RANDOMX_FLAG_FULL_MEM is set.
- * @param dataset is a pointer to a defyx_dataset structure. Can be NULL
+ * @param dataset is a pointer to a randomx_dataset structure. Can be NULL
  *        if RANDOMX_FLAG_FULL_MEM is not set.
  *
- * @return Pointer to an initialized defyx_vm structure.
+ * @return Pointer to an initialized randomx_vm structure.
  *         Returns NULL if:
  *         (1) Scratchpad memory allocation fails.
  *         (2) The requested initialization flags are not supported on the current platform.
  *         (3) cache parameter is NULL and RANDOMX_FLAG_FULL_MEM is not set
  *         (4) dataset parameter is NULL and RANDOMX_FLAG_FULL_MEM is set
 */
-RANDOMX_EXPORT defyx_vm *defyx_create_vm(defyx_flags flags, defyx_cache *cache, defyx_dataset *dataset);
+RANDOMX_EXPORT randomx_vm *randomx_create_vm(randomx_flags flags, randomx_cache *cache, randomx_dataset *dataset);
 
 /**
  * Reinitializes a virtual machine with a new Cache. This function should be called anytime
- * the Cache is reinitialized with a new key.
+ * the Cache is reinitialized with a new key. Does nothing if called with a Cache containing
+ * the same key value as already set.
  *
- * @param machine is a pointer to a defyx_vm structure that was initialized
+ * @param machine is a pointer to a randomx_vm structure that was initialized
  *        without RANDOMX_FLAG_FULL_MEM. Must not be NULL.
- * @param cache is a pointer to an initialized defyx_cache structure. Must not be NULL.
+ * @param cache is a pointer to an initialized randomx_cache structure. Must not be NULL.
 */
-RANDOMX_EXPORT void defyx_vm_set_cache(defyx_vm *machine, defyx_cache* cache);
+RANDOMX_EXPORT void randomx_vm_set_cache(randomx_vm *machine, randomx_cache* cache);
 
 /**
  * Reinitializes a virtual machine with a new Dataset.
  *
- * @param machine is a pointer to a defyx_vm structure that was initialized
+ * @param machine is a pointer to a randomx_vm structure that was initialized
  *        with RANDOMX_FLAG_FULL_MEM. Must not be NULL.
- * @param dataset is a pointer to an initialized defyx_dataset structure. Must not be NULL.
+ * @param dataset is a pointer to an initialized randomx_dataset structure. Must not be NULL.
 */
-RANDOMX_EXPORT void defyx_vm_set_dataset(defyx_vm *machine, defyx_dataset *dataset);
+RANDOMX_EXPORT void randomx_vm_set_dataset(randomx_vm *machine, randomx_dataset *dataset);
 
 /**
- * Releases all memory occupied by the defyx_vm structure.
+ * Releases all memory occupied by the randomx_vm structure.
  *
- * @param machine is a pointer to a previously created defyx_vm structure.
+ * @param machine is a pointer to a previously created randomx_vm structure.
 */
-RANDOMX_EXPORT void defyx_destroy_vm(defyx_vm *machine);
+RANDOMX_EXPORT void randomx_destroy_vm(randomx_vm *machine);
 
 /**
- * Calculates a DefyX hash value.
+ * Calculates a RandomX hash value.
  *
- * @param machine is a pointer to a defyx_vm structure. Must not be NULL.
+ * @param machine is a pointer to a randomx_vm structure. Must not be NULL.
  * @param input is a pointer to memory to be hashed. Must not be NULL.
  * @param inputSize is the number of bytes to be hashed.
  * @param output is a pointer to memory where the hash will be stored. Must not
  *        be NULL and at least RANDOMX_HASH_SIZE bytes must be available for writing.
 */
-RANDOMX_EXPORT void defyx_calculate_hash(defyx_vm *machine, const void *input, size_t inputSize, void *output);
+RANDOMX_EXPORT void randomx_calculate_hash(randomx_vm *machine, const void *input, size_t inputSize, void *output);
 
 #if defined(__cplusplus)
 }

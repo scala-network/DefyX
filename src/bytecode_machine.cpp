@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "bytecode_machine.hpp"
 #include "reciprocal.h"
 
-namespace defyx {
+namespace randomx {
 
 	const int_reg_t BytecodeMachine::zero = 0;
 
@@ -248,7 +248,7 @@ namespace defyx {
 				auto dst = instr.dst % RegistersCount;
 				ibc.type = InstructionType::IMUL_R;
 				ibc.idst = &nreg->r[dst];
-				ibc.imm = defyx_reciprocal(divisor);
+				ibc.imm = randomx_reciprocal(divisor);
 				ibc.isrc = &ibc.imm;
 				registerUsage[dst] = i;
 			}

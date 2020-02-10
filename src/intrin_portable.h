@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <cstdint>
-#include "blake2/endian.h"
+#include "blake2_yespower_k12/endian.h"
 
 constexpr int32_t unsigned32ToSigned2sCompl(uint32_t x) {
 	return (-1 == ~0) ? (int32_t)x : (x > INT32_MAX ? (-(int32_t)(UINT32_MAX - x) - 1) : (int32_t)x);
@@ -61,7 +61,7 @@ constexpr int RoundToZero = 3;
 //the library "sqrt" function provided by MSVC for x86 targets doesn't give
 //the correct results, so we have to use inline assembly to call x87 fsqrt directly
 #if !defined(__SSE2__)
-#if defined(_M_IX86)
+#if defined(_MSC_VER) && defined(_M_IX86)
 inline double __cdecl rx_sqrt(double x) {
 	__asm {
 		fld x
@@ -385,7 +385,14 @@ FORCE_INLINE rx_vec_f128 rx_cvt_packed_int_vec_f128(const void* addr) {
 typedef uint8x16_t rx_vec_i128;
 typedef float64x2_t rx_vec_f128;
 
-#define rx_aligned_alloc(size, align) aligned_alloc(align, size)
+inline void* rx_aligned_alloc(size_t size, size_t align) {
+	void* p;
+	if (posix_memalign(&p, align, size) == 0)
+		return p;
+
+	return 0;
+};
+
 #define rx_aligned_free(a) free(a)
 
 inline void rx_prefetch_nta(void* ptr) {

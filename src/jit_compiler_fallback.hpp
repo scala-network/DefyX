@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include "common.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	class Program;
 	class ProgramConfiguration;
@@ -69,5 +69,8 @@ namespace defyx {
 		size_t getCodeSize() {
 			return 0;
 		}
+		void enableWriting() {}
+		void enableExecution() {}
+		void enableAll() {}
 	};
 }

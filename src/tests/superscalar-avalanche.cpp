@@ -25,11 +25,11 @@ int main() {
 			uint64_t rb[8];
 			memcpy(rb, ra, sizeof rb);
 			rb[0] ^= (1ULL << bit);
-			defyx::SuperscalarProgram p;
-			defyx::Blake2Generator gen(seed, sizeof seed, i);
-			defyx::generateSuperscalar(p, gen);
-			defyx::executeSuperscalar(ra, p, nullptr);
-			defyx::executeSuperscalar(rb, p, nullptr);
+			randomx::SuperscalarProgram p;
+			randomx::Blake2Generator gen(seed, sizeof seed, i);
+			randomx::generateSuperscalar(p, gen);
+			randomx::executeSuperscalar(ra, p, nullptr);
+			randomx::executeSuperscalar(rb, p, nullptr);
 			uint64_t diff = 0;
 			for (int j = 0; j < 8; ++j) {
 				diff += __popcnt64(ra[j] ^ rb[j]);

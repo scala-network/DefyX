@@ -21,33 +21,33 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{3346A4AD-C438-4324-8B77-47A16452954B}</ProjectGuid>
-    <RootNamespace>defyx</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <RootNamespace>randomx</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -146,7 +146,7 @@ SET ERRORLEVEL = 0</Command>
     <ClCompile Include="..\src\vm_interpreted_light.cpp" />
     <ClCompile Include="..\src\vm_interpreted.cpp" />
     <ClCompile Include="..\src\jit_compiler_x86.cpp" />
-    <ClCompile Include="..\src\defyx.cpp" />
+    <ClCompile Include="..\src\randomx.cpp" />
     <ClCompile Include="..\src\superscalar.cpp" />
     <ClCompile Include="..\src\reciprocal.c" />
     <ClCompile Include="..\src\soft_aes.cpp" />
@@ -162,7 +162,7 @@ SET ERRORLEVEL = 0</Command>
     <ClInclude Include="..\src\argon2_core.h" />
     <ClInclude Include="..\src\assembly_generator_x86.hpp" />
     <ClInclude Include="..\src\blake2\blake2-impl.h" />
-    <ClInclude Include="..\src\blake2\blake2.h" />
+    <ClInclude Include="..\src\blake2\blake2_yk12.h" />
     <ClInclude Include="..\src\blake2\blamka-round-ref.h" />
     <ClInclude Include="..\src\blake2\endian.h" />
     <ClInclude Include="..\src\blake2_generator.hpp" />
@@ -183,7 +183,7 @@ SET ERRORLEVEL = 0</Command>
     <ClInclude Include="..\src\intrin_portable.h" />
     <ClInclude Include="..\src\jit_compiler_x86_static.hpp" />
     <ClInclude Include="..\src\jit_compiler_x86.hpp" />
-    <ClInclude Include="..\src\defyx.h" />
+    <ClInclude Include="..\src\randomx.h" />
     <ClInclude Include="..\src\superscalar.hpp" />
     <ClInclude Include="..\src\program.hpp" />
     <ClInclude Include="..\src\reciprocal.h" />

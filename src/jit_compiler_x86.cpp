@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reciprocal.h"
 #include "virtual_memory.hpp"
 
-namespace defyx {
+namespace randomx {
 	/*
 
 	REGISTER ALLOCATION:
@@ -78,38 +78,38 @@ namespace defyx {
 
 	//Calculate the required code buffer size that is sufficient for the largest possible program:
 
-	constexpr size_t MaxDefyXInstrCodeSize = 32;   //FDIV_M requires up to 32 bytes of x86 code
+	constexpr size_t MaxRandomXInstrCodeSize = 32;   //FDIV_M requires up to 32 bytes of x86 code
 	constexpr size_t MaxSuperscalarInstrSize = 14;   //IMUL_RCP requires 14 bytes of x86 code
 	constexpr size_t SuperscalarProgramHeader = 128; //overhead per superscalar program
 	constexpr size_t CodeAlign = 4096;               //align code size to a multiple of 4 KiB
 	constexpr size_t ReserveCodeSize = CodeAlign;    //function prologue/epilogue + reserve
 
-	constexpr size_t DefyXCodeSize = alignSize(ReserveCodeSize + MaxDefyXInstrCodeSize * RANDOMX_PROGRAM_SIZE, CodeAlign);
+	constexpr size_t RandomXCodeSize = alignSize(ReserveCodeSize + MaxRandomXInstrCodeSize * RANDOMX_PROGRAM_SIZE, CodeAlign);
 	constexpr size_t SuperscalarSize = alignSize(ReserveCodeSize + (SuperscalarProgramHeader + MaxSuperscalarInstrSize * SuperscalarMaxSize) * RANDOMX_CACHE_ACCESSES, CodeAlign);
 
-	static_assert(DefyXCodeSize < INT32_MAX / 2, "DefyXCodeSize is too large");
+	static_assert(RandomXCodeSize < INT32_MAX / 2, "RandomXCodeSize is too large");
 	static_assert(SuperscalarSize < INT32_MAX / 2, "SuperscalarSize is too large");
 
-	constexpr uint32_t CodeSize = DefyXCodeSize + SuperscalarSize;
+	constexpr uint32_t CodeSize = RandomXCodeSize + SuperscalarSize;
 
-	constexpr int32_t superScalarHashOffset = DefyXCodeSize;
+	constexpr int32_t superScalarHashOffset = RandomXCodeSize;
 
-	const uint8_t* codePrologue = (uint8_t*)&defyx_program_prologue;
-	const uint8_t* codeLoopBegin = (uint8_t*)&defyx_program_loop_begin;
-	const uint8_t* codeLoopLoad = (uint8_t*)&defyx_program_loop_load;
-	const uint8_t* codeProgamStart = (uint8_t*)&defyx_program_start;
-	const uint8_t* codeReadDataset = (uint8_t*)&defyx_program_read_dataset;
-	const uint8_t* codeReadDatasetLightSshInit = (uint8_t*)&defyx_program_read_dataset_sshash_init;
-	const uint8_t* codeReadDatasetLightSshFin = (uint8_t*)&defyx_program_read_dataset_sshash_fin;
-	const uint8_t* codeDatasetInit = (uint8_t*)&defyx_dataset_init;
-	const uint8_t* codeLoopStore = (uint8_t*)&defyx_program_loop_store;
-	const uint8_t* codeLoopEnd = (uint8_t*)&defyx_program_loop_end;
-	const uint8_t* codeEpilogue = (uint8_t*)&defyx_program_epilogue;
-	const uint8_t* codeProgramEnd = (uint8_t*)&defyx_program_end;
-	const uint8_t* codeShhLoad = (uint8_t*)&defyx_sshash_load;
-	const uint8_t* codeShhPrefetch = (uint8_t*)&defyx_sshash_prefetch;
-	const uint8_t* codeShhEnd = (uint8_t*)&defyx_sshash_end;
-	const uint8_t* codeShhInit = (uint8_t*)&defyx_sshash_init;
+	const uint8_t* codePrologue = (uint8_t*)&randomx_program_prologue;
+	const uint8_t* codeLoopBegin = (uint8_t*)&randomx_program_loop_begin;
+	const uint8_t* codeLoopLoad = (uint8_t*)&randomx_program_loop_load;
+	const uint8_t* codeProgamStart = (uint8_t*)&randomx_program_start;
+	const uint8_t* codeReadDataset = (uint8_t*)&randomx_program_read_dataset;
+	const uint8_t* codeReadDatasetLightSshInit = (uint8_t*)&randomx_program_read_dataset_sshash_init;
+	const uint8_t* codeReadDatasetLightSshFin = (uint8_t*)&randomx_program_read_dataset_sshash_fin;
+	const uint8_t* codeDatasetInit = (uint8_t*)&randomx_dataset_init;
+	const uint8_t* codeLoopStore = (uint8_t*)&randomx_program_loop_store;
+	const uint8_t* codeLoopEnd = (uint8_t*)&randomx_program_loop_end;
+	const uint8_t* codeEpilogue = (uint8_t*)&randomx_program_epilogue;
+	const uint8_t* codeProgramEnd = (uint8_t*)&randomx_program_end;
+	const uint8_t* codeShhLoad = (uint8_t*)&randomx_sshash_load;
+	const uint8_t* codeShhPrefetch = (uint8_t*)&randomx_sshash_prefetch;
+	const uint8_t* codeShhEnd = (uint8_t*)&randomx_sshash_end;
+	const uint8_t* codeShhInit = (uint8_t*)&randomx_sshash_init;
 
 	const int32_t prologueSize = codeLoopBegin - codePrologue;
 	const int32_t loopLoadSize = codeProgamStart - codeLoopLoad;
@@ -218,7 +218,7 @@ namespace defyx {
 	}
 
 	JitCompilerX86::JitCompilerX86() {
-		code = (uint8_t*)allocExecutableMemory(CodeSize);
+		code = (uint8_t*)allocMemoryPages(CodeSize);
 		memcpy(code, codePrologue, prologueSize);
 		memcpy(code + epilogueOffset, codeEpilogue, epilogueSize);
 	}
@@ -227,11 +227,23 @@ namespace defyx {
 		freePagedMemory(code, CodeSize);
 	}
 
+	void JitCompilerX86::enableAll() {
+		setPagesRWX(code, CodeSize);
+	}
+
+	void JitCompilerX86::enableWriting() {
+		setPagesRW(code, CodeSize);
+	}
+
+	void JitCompilerX86::enableExecution() {
+		setPagesRX(code, CodeSize);
+	}
+
 	void JitCompilerX86::generateProgram(Program& prog, ProgramConfiguration& pcfg) {
 		generateProgramPrologue(prog, pcfg);
 		memcpy(code + codePos, codeReadDataset, readDatasetSize);
 		codePos += readDatasetSize;
-		generateProgramEpilogue(prog);
+		generateProgramEpilogue(prog, pcfg);
 	}
 
 	void JitCompilerX86::generateProgramLight(Program& prog, ProgramConfiguration& pcfg, uint32_t datasetOffset) {
@@ -242,7 +254,7 @@ namespace defyx {
 		emitByte(CALL);
 		emit32(superScalarHashOffset - (codePos + 4));
 		emit(codeReadDatasetLightSshFin, readDatasetLightFinSize);
-		generateProgramEpilogue(prog);
+		generateProgramEpilogue(prog, pcfg);
 	}
 
 	template<size_t N>
@@ -286,12 +298,13 @@ namespace defyx {
 		for (unsigned i = 0; i < 8; ++i) {
 			registerUsage[i] = -1;
 		}
+
+		codePos = ((uint8_t*)randomx_program_prologue_first_load) - ((uint8_t*)randomx_program_prologue);
+		code[codePos + sizeof(REX_XOR_RAX_R64)] = 0xc0 + pcfg.readReg0;
+		code[codePos + sizeof(REX_XOR_RAX_R64) * 2 + 1] = 0xc0 + pcfg.readReg1;
+
 		codePos = prologueSize;
 		memcpy(code + codePos - 48, &pcfg.eMask, sizeof(pcfg.eMask));
-		emit(REX_XOR_RAX_R64);
-		emitByte(0xc0 + pcfg.readReg0);
-		emit(REX_XOR_RAX_R64);
-		emitByte(0xc0 + pcfg.readReg1);
 		memcpy(code + codePos, codeLoopLoad, loopLoadSize);
 		codePos += loopLoadSize;
 		for (unsigned i = 0; i < prog.getSize(); ++i) {
@@ -306,7 +319,12 @@ namespace defyx {
 		emitByte(0xc0 + pcfg.readReg3);
 	}
 
-	void JitCompilerX86::generateProgramEpilogue(Program& prog) {
+	void JitCompilerX86::generateProgramEpilogue(Program& prog, ProgramConfiguration& pcfg) {
+		emit(REX_MOV_RR64);
+		emitByte(0xc0 + pcfg.readReg0);
+		emit(REX_XOR_RAX_R64);
+		emitByte(0xc0 + pcfg.readReg1);
+		emit((const uint8_t*)&randomx_prefetch_scratchpad, ((uint8_t*)&randomx_prefetch_scratchpad_end) - ((uint8_t*)&randomx_prefetch_scratchpad));
 		memcpy(code + codePos, codeLoopStore, loopStoreSize);
 		codePos += loopStoreSize;
 		emit(SUB_EBX);
@@ -325,39 +343,39 @@ namespace defyx {
 	void JitCompilerX86::generateSuperscalarCode(Instruction& instr, std::vector<uint64_t> &reciprocalCache) {
 		switch ((SuperscalarInstructionType)instr.opcode)
 		{
-		case defyx::SuperscalarInstructionType::ISUB_R:
+		case randomx::SuperscalarInstructionType::ISUB_R:
 			emit(REX_SUB_RR);
 			emitByte(0xc0 + 8 * instr.dst + instr.src);
 			break;
-		case defyx::SuperscalarInstructionType::IXOR_R:
+		case randomx::SuperscalarInstructionType::IXOR_R:
 			emit(REX_XOR_RR);
 			emitByte(0xc0 + 8 * instr.dst + instr.src);
 			break;
-		case defyx::SuperscalarInstructionType::IADD_RS:
+		case randomx::SuperscalarInstructionType::IADD_RS:
 			emit(REX_LEA);
 			emitByte(0x04 + 8 * instr.dst);
 			genSIB(instr.getModShift(), instr.src, instr.dst);
 			break;
-		case defyx::SuperscalarInstructionType::IMUL_R:
+		case randomx::SuperscalarInstructionType::IMUL_R:
 			emit(REX_IMUL_RR);
 			emitByte(0xc0 + 8 * instr.dst + instr.src);
 			break;
-		case defyx::SuperscalarInstructionType::IROR_C:
+		case randomx::SuperscalarInstructionType::IROR_C:
 			emit(REX_ROT_I8);
 			emitByte(0xc8 + instr.dst);
 			emitByte(instr.getImm32() & 63);
 			break;
-		case defyx::SuperscalarInstructionType::IADD_C7:
+		case randomx::SuperscalarInstructionType::IADD_C7:
 			emit(REX_81);
 			emitByte(0xc0 + instr.dst);
 			emit32(instr.getImm32());
 			break;
-		case defyx::SuperscalarInstructionType::IXOR_C7:
+		case randomx::SuperscalarInstructionType::IXOR_C7:
 			emit(REX_XOR_RI);
 			emitByte(0xf0 + instr.dst);
 			emit32(instr.getImm32());
 			break;
-		case defyx::SuperscalarInstructionType::IADD_C8:
+		case randomx::SuperscalarInstructionType::IADD_C8:
 			emit(REX_81);
 			emitByte(0xc0 + instr.dst);
 			emit32(instr.getImm32());
@@ -365,7 +383,7 @@ namespace defyx {
 			emit(NOP1);
 #endif
 			break;
-		case defyx::SuperscalarInstructionType::IXOR_C8:
+		case randomx::SuperscalarInstructionType::IXOR_C8:
 			emit(REX_XOR_RI);
 			emitByte(0xf0 + instr.dst);
 			emit32(instr.getImm32());
@@ -373,7 +391,7 @@ namespace defyx {
 			emit(NOP1);
 #endif
 			break;
-		case defyx::SuperscalarInstructionType::IADD_C9:
+		case randomx::SuperscalarInstructionType::IADD_C9:
 			emit(REX_81);
 			emitByte(0xc0 + instr.dst);
 			emit32(instr.getImm32());
@@ -381,7 +399,7 @@ namespace defyx {
 			emit(NOP2);
 #endif
 			break;
-		case defyx::SuperscalarInstructionType::IXOR_C9:
+		case randomx::SuperscalarInstructionType::IXOR_C9:
 			emit(REX_XOR_RI);
 			emitByte(0xf0 + instr.dst);
 			emit32(instr.getImm32());
@@ -389,7 +407,7 @@ namespace defyx {
 			emit(NOP2);
 #endif
 			break;
-		case defyx::SuperscalarInstructionType::IMULH_R:
+		case randomx::SuperscalarInstructionType::IMULH_R:
 			emit(REX_MOV_RR64);
 			emitByte(0xc0 + instr.dst);
 			emit(REX_MUL_R);
@@ -397,7 +415,7 @@ namespace defyx {
 			emit(REX_MOV_R64R);
 			emitByte(0xc2 + 8 * instr.dst);
 			break;
-		case defyx::SuperscalarInstructionType::ISMULH_R:
+		case randomx::SuperscalarInstructionType::ISMULH_R:
 			emit(REX_MOV_RR64);
 			emitByte(0xc0 + instr.dst);
 			emit(REX_MUL_R);
@@ -405,7 +423,7 @@ namespace defyx {
 			emit(REX_MOV_R64R);
 			emitByte(0xc2 + 8 * instr.dst);
 			break;
-		case defyx::SuperscalarInstructionType::IMUL_RCP:
+		case randomx::SuperscalarInstructionType::IMUL_RCP:
 			emit(MOV_RAX_I);
 			emit64(reciprocalCache[instr.getImm32()]);
 			emit(REX_IMUL_RM);
@@ -600,7 +618,7 @@ namespace defyx {
 		if (!isZeroOrPowerOf2(divisor)) {
 			registerUsage[instr.dst] = i;
 			emit(MOV_RAX_I);
-			emit64(defyx_reciprocal_fast(divisor));
+			emit64(randomx_reciprocal_fast(divisor));
 			emit(REX_IMUL_RM);
 			emitByte(0xc0 + 8 * instr.dst);
 		}

@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "instruction.hpp"
 #include "common.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	void Instruction::print(std::ostream& os) const {
 		os << names[opcode] << " ";

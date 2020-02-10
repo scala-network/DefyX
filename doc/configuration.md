@@ -1,6 +1,6 @@
-# DefyX configuration
+# RandomX configuration
 
-DefyX has 45 customizable parameters (see table below). We recommend each project using DefyX to select a unique configuration to prevent network attacks from hashpower rental services.
+RandomX has 45 customizable parameters (see table below). We recommend each project using RandomX to select a unique configuration to prevent network attacks from hashpower rental services.
 
 These parameters can be modified in source file [configuration.h](../src/configuration.h).
 
@@ -9,12 +9,12 @@ These parameters can be modified in source file [configuration.h](../src/configu
 |`RANDOMX_ARGON_MEMORY`|The number of 1 KiB Argon2 blocks in the Cache| `262144`|
 |`RANDOMX_ARGON_ITERATIONS`|The number of Argon2d iterations for Cache initialization|`3`|
 |`RANDOMX_ARGON_LANES`|The number of parallel lanes for Cache initialization|`1`|
-|`RANDOMX_ARGON_SALT`|Argon2 salt|`"DefyX\x03"`|
+|`RANDOMX_ARGON_SALT`|Argon2 salt|`"RandomX\x03"`|
 |`RANDOMX_CACHE_ACCESSES`|The number of random Cache accesses per Dataset item|`8`|
 |`RANDOMX_SUPERSCALAR_LATENCY`|Target latency for SuperscalarHash (in cycles of the reference CPU)|`170`|
 |`RANDOMX_DATASET_BASE_SIZE`|Dataset base size in bytes|`2147483648`|
 |`RANDOMX_DATASET_EXTRA_SIZE`|Dataset extra size in bytes|`33554368`|
-|`RANDOMX_PROGRAM_SIZE`|The number of instructions in a DefyX program|`256`|
+|`RANDOMX_PROGRAM_SIZE`|The number of instructions in a RandomX program|`256`|
 |`RANDOMX_PROGRAM_ITERATIONS`|The number of iterations per program|`2048`|
 |`RANDOMX_PROGRAM_COUNT`|The number of programs per hash|`8`|
 |`RANDOMX_JUMP_BITS`|Jump condition mask size in bits|`8`|
@@ -33,7 +33,7 @@ Not all of the parameters can be changed safely and most parameters have some co
 This parameter determines the amount of memory needed in the light mode. Memory is specified in KiB (1 KiB = 1024 bytes).
 
 #### Permitted values
-Integer powers of 2 in the range 1 - 2097152.
+Integer powers of 2 in the range 8 - 2097152.
 
 #### Notes
 Lower sizes will reduce the memory-hardness of the algorithm.
@@ -43,7 +43,7 @@ Lower sizes will reduce the memory-hardness of the algorithm.
 Determines the number of passes of Argon2 that are used to generate the Cache.
 
 #### Permitted values
-Any positive integer.
+Any positive 32-bit integer.
 
 #### Notes
 The time needed to initialize the Cache is proportional to the value of this constant.
@@ -53,7 +53,7 @@ The time needed to initialize the Cache is proportional to the value of this con
 The number of parallel lanes for Cache initialization.
 
 #### Permitted values
-Any positive integer.
+Integers in the range 1 - 16777215.
 
 #### Notes
 This parameter determines how many threads can be used for Cache initialization. 
@@ -63,7 +63,7 @@ This parameter determines how many threads can be used for Cache initialization.
 Salt value for Cache initialization.
 
 #### Permitted values
-Any string of byte values.
+A string of at least 8 characters.
 
 #### Note
 Every implementation should choose a unique salt value.
@@ -109,13 +109,13 @@ This constant affects the memory requirements in fast mode. Some values are unsa
 
 ### RANDOMX_PROGRAM_SIZE
 
-The number of instructions in a DefyX program.
+The number of instructions in a RandomX program.
 
 #### Permitted values
 Positive integers divisible by 8 in the range 8 - 32768 (inclusive).
 
 #### Notes
-Smaller values will make DefyX more DRAM-latency bound, while higher values will make DefyX more compute-bound. Some values are unsafe. See [Unsafe configurations](#unsafe-configurations).
+Smaller values will make RandomX more DRAM-latency bound, while higher values will make RandomX more compute-bound. Some values are unsafe. See [Unsafe configurations](#unsafe-configurations).
 
 ### RANDOMX_PROGRAM_ITERATIONS
 
@@ -153,17 +153,17 @@ Jump condition mask offset in bits.
 Non-negative integers. The sum of `RANDOMX_JUMP_BITS` and `RANDOMX_JUMP_OFFSET` must not exceed 16.
 
 #### Notes
-Since the low-order bits of DefyX registers are slightly biased, this offset moves the condition mask to higher bits, which are less biased. Using values smaller than the default may result in a slightly lower jump probability than the theoretical value calculated from `RANDOMX_JUMP_BITS`.
+Since the low-order bits of RandomX registers are slightly biased, this offset moves the condition mask to higher bits, which are less biased. Using values smaller than the default may result in a slightly lower jump probability than the theoretical value calculated from `RANDOMX_JUMP_BITS`.
 
 ### RANDOMX_SCRATCHPAD_L3
-DefyX Scratchpad size in bytes.
+RandomX Scratchpad size in bytes.
 
 #### Permitted values
 Any integer power of 2. Must be larger than or equal to `RANDOMX_SCRATCHPAD_L2`.
 
 #### Notes
 
-The default value of 2 MiB was selected to match the typical cache/core ratio of desktop processors. Using a lower value will make DefyX more core-bound, while using larger values will make the algorithm more latency-bound. Some values are unsafe depending on other parameters. See [Unsafe configurations](#unsafe-configurations).
+The default value of 2 MiB was selected to match the typical cache/core ratio of desktop processors. Using a lower value will make RandomX more core-bound, while using larger values will make the algorithm more latency-bound. Some values are unsafe depending on other parameters. See [Unsafe configurations](#unsafe-configurations).
 
 ### RANDOMX_SCRATCHPAD_L2
 
@@ -173,7 +173,7 @@ Scratchpad L2 size in bytes.
 Any integer power of 2. Must be larger than or equal to `RANDOMX_SCRATCHPAD_L1`.
 
 #### Notes
-The default value of 256 KiB was selected to match the typical per-core L2 cache size of desktop processors. Using a lower value will make DefyX more core-bound, while using larger values will make the algorithm more latency-bound.
+The default value of 256 KiB was selected to match the typical per-core L2 cache size of desktop processors. Using a lower value will make RandomX more core-bound, while using larger values will make the algorithm more latency-bound.
 
 ### RANDOMX_SCRATCHPAD_L1
 
@@ -183,7 +183,7 @@ Scratchpad L1 size in bytes.
 Any integer power of 2. The minimum is 64 bytes.
 
 #### Notes
-The default value of 16 KiB was selected to be about half of the per-core L1 cache size of desktop processors. Using a lower value will make DefyX more core-bound, while using larger values will make the algorithm more latency-bound.
+The default value of 16 KiB was selected to be about half of the per-core L1 cache size of desktop processors. Using a lower value will make RandomX more core-bound, while using larger values will make the algorithm more latency-bound.
 
 ### RANDOMX_FREQ_*
 
@@ -213,9 +213,9 @@ Making changes to the default values is not recommended. The only exceptions are
 
 ## Unsafe configurations
 
-There are some configurations that are considered 'unsafe' because they affect the security of the algorithm against attacks. If the conditions listed below are not satisfied, the configuration is unsafe and a compilation error is emitted when building the DefyX library.
+There are some configurations that are considered 'unsafe' because they affect the security of the algorithm against attacks. If the conditions listed below are not satisfied, the configuration is unsafe and a compilation error is emitted when building the RandomX library.
 
-These checks can be disabled by definining `RANDOMX_UNSAFE` when building DefyX, e.g. by using `-DRANDOMX_UNSAFE` command line switch in GCC or MSVC. It is not recommended to disable these checks except for testing purposes.
+These checks can be disabled by definining `RANDOMX_UNSAFE` when building RandomX, e.g. by using `-DRANDOMX_UNSAFE` command line switch in GCC or MSVC. It is not recommended to disable these checks except for testing purposes.
 
 
 ### 1. Memory-time tradeoffs

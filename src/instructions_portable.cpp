@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include "common.hpp"
 #include "intrin_portable.h"
-#include "blake2/endian.h"
+#include "blake2_yespower_k12/endian.h"
 
 #if defined(__SIZEOF_INT128__)
 	typedef unsigned __int128 uint128_t;
@@ -161,7 +161,7 @@ void rx_set_rounding_mode(uint32_t mode) {
 
 #ifdef RANDOMX_USE_X87
 
-#ifdef _M_IX86
+#if defined(_MSC_VER) && defined(_M_IX86)
 
 void rx_set_double_precision() {
 	_control87(_PC_53, _MCW_PC);

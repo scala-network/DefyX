@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "program.hpp"
 #include "superscalar.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	static const char* regR[] = { "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15" };
 	static const char* regR32[] = { "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d" };
@@ -57,7 +57,7 @@ namespace defyx {
 		}
 		asmCode.str(std::string()); //clear
 		for (unsigned i = 0; i < prog.getSize(); ++i) {
-			asmCode << "defyx_isn_" << i << ":" << std::endl;
+			asmCode << "randomx_isn_" << i << ":" << std::endl;
 			Instruction& instr = prog(i);
 			instr.src %= RegistersCount;
 			instr.dst %= RegistersCount;
@@ -130,7 +130,7 @@ namespace defyx {
 				asmCode << "mov " << regR[instr.dst] << ", rdx" << std::endl;
 				break;
 			case SuperscalarInstructionType::IMUL_RCP:
-				asmCode << "mov rax, " << (int64_t)defyx_reciprocal(instr.getImm32()) << std::endl;
+				asmCode << "mov rax, " << (int64_t)randomx_reciprocal(instr.getImm32()) << std::endl;
 				asmCode << "imul " << regR[instr.dst] << ", rax" << std::endl;
 				break;
 			default:
@@ -223,7 +223,7 @@ namespace defyx {
 				asmCode << regR[instr.dst] << " = smulh(" << regR[instr.dst] << ", " << regR[instr.src] << ");" << std::endl;
 				break;
 			case SuperscalarInstructionType::IMUL_RCP:
-				asmCode << regR[instr.dst] << " *= " << (int64_t)defyx_reciprocal(instr.getImm32()) << ";" << std::endl;
+				asmCode << regR[instr.dst] << " *= " << (int64_t)randomx_reciprocal(instr.getImm32()) << ";" << std::endl;
 				break;
 			default:
 				UNREACHABLE;
@@ -448,7 +448,7 @@ namespace defyx {
 		uint64_t divisor = instr.getImm32();
 		if (!isZeroOrPowerOf2(divisor)) {
 			registerUsage[instr.dst] = i;
-			asmCode << "\tmov rax, " << defyx_reciprocal(divisor) << std::endl;
+			asmCode << "\tmov rax, " << randomx_reciprocal(divisor) << std::endl;
 			asmCode << "\timul " << regR[instr.dst] << ", rax" << std::endl;
 			traceint(instr);
 		}
@@ -555,7 +555,7 @@ namespace defyx {
 			imm &= ~(1L << (shift - 1));
 		asmCode << "\tadd " << regR[reg] << ", " << imm << std::endl;
 		asmCode << "\ttest " << regR[reg] << ", " << (ConditionMask << shift) << std::endl;
-		asmCode << "\tjz defyx_isn_" << target << std::endl;
+		asmCode << "\tjz randomx_isn_" << target << std::endl;
 		//mark all registers as used
 		for (unsigned j = 0; j < RegistersCount; ++j) {
 			registerUsage[j] = i;

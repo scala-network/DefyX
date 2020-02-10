@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstddef>
 
-namespace defyx {
+namespace randomx {
 
 	template<size_t alignment>
 	struct AlignedAllocator {

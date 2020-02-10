@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.572
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "defyx", "vcxproj\defyx.vcxproj", "{3346A4AD-C438-4324-8B77-47A16452954B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "randomx", "vcxproj\randomx.vcxproj", "{3346A4AD-C438-4324-8B77-47A16452954B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4A4A689F-86AF-41C0-A974-1080506D0923}"
 EndProject
@@ -29,7 +29,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "perf-simulation", "vcxproj\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "runtime-distr", "vcxproj\runtime-distr.vcxproj", "{F207EC8C-C55F-46C0-8851-887A71574F54}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "defyx-dll", "vcxproj\defyx-dll.vcxproj", "{59560AD8-18E3-463E-A941-BBD808EC7C83}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "randomx-dll", "vcxproj\randomx-dll.vcxproj", "{59560AD8-18E3-463E-A941-BBD808EC7C83}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "vcxproj\tests.vcxproj", "{41F3F4DF-8113-4029-9915-FDDC44C43D49}"
 EndProject

@@ -1,6 +1,6 @@
-# DefyX
+# RandomX
 
-DefyX is a proof of work (PoW) algorithm which was designed to close the gap between general-purpose CPUs and specialized hardware. The core of the algorithm is a simulation of a virtual CPU.
+RandomX is a proof of work (PoW) algorithm which was designed to close the gap between general-purpose CPUs and specialized hardware. The core of the algorithm is a simulation of a virtual CPU.
 
 #### Table of contents
 
@@ -29,11 +29,11 @@ DefyX is a proof of work (PoW) algorithm which was designed to close the gap bet
 
 **AesHash1R** refers to an AES-based fingerprinting function described in chapter 3.4. It's capable of processing more than 10 bytes per clock cycle and produces a 512-bit output.
 
-**BlakeGenerator** refers to a custom pseudo-random number generator described in chapter 3.4. It's based on the Blake2b hashing function.
+**BlakeGenerator** refers to a custom pseudo-random number generator described in chapter 3.5. It's based on the Blake2b hashing function.
 
 **SuperscalarHash** refers to a custom diffusion function designed to run efficiently on superscalar CPUs (see chapter 7). It transforms a 64-byte input value into a 64-byte output value.
 
-**Virtual Machine** or **VM** refers to the DefyX virtual machine as described in chapter 4.
+**Virtual Machine** or **VM** refers to the RandomX virtual machine as described in chapter 4.
 
 **Programming the VM** refers to the act of loading a program and configuration into the VM. This is described in chapter 4.5.
 
@@ -50,7 +50,7 @@ DefyX is a proof of work (PoW) algorithm which was designed to close the gap bet
 **Dataset** refers to a large read-only buffer described in chapter 7. It is constructed from the Cache using the SuperscalarHash function.
 
 ### 1.2 Configurable parameters
-DefyX has several configurable parameters that are listed in Table 1.2.1 with their default values.
+RandomX has several configurable parameters that are listed in Table 1.2.1 with their default values.
 
 *Table 1.2.1 - Configurable parameters*
 
@@ -59,12 +59,12 @@ DefyX has several configurable parameters that are listed in Table 1.2.1 with th
 |`RANDOMX_ARGON_MEMORY`|The number of 1 KiB Argon2 blocks in the Cache| `262144`|
 |`RANDOMX_ARGON_ITERATIONS`|The number of Argon2d iterations for Cache initialization|`3`|
 |`RANDOMX_ARGON_LANES`|The number of parallel lanes for Cache initialization|`1`|
-|`RANDOMX_ARGON_SALT`|Argon2 salt|`"DefyX\x03"`|
+|`RANDOMX_ARGON_SALT`|Argon2 salt|`"RandomX\x03"`|
 |`RANDOMX_CACHE_ACCESSES`|The number of random Cache accesses per Dataset item|`8`|
 |`RANDOMX_SUPERSCALAR_LATENCY`|Target latency for SuperscalarHash (in cycles of the reference CPU)|`170`|
 |`RANDOMX_DATASET_BASE_SIZE`|Dataset base size in bytes|`2147483648`|
 |`RANDOMX_DATASET_EXTRA_SIZE`|Dataset extra size in bytes|`33554368`|
-|`RANDOMX_PROGRAM_SIZE`|The number of instructions in a DefyX program|`256`|
+|`RANDOMX_PROGRAM_SIZE`|The number of instructions in a RandomX program|`256`|
 |`RANDOMX_PROGRAM_ITERATIONS`|The number of iterations per program|`2048`|
 |`RANDOMX_PROGRAM_COUNT`|The number of programs per hash|`8`|
 |`RANDOMX_JUMP_BITS`|Jump condition mask size in bits|`8`|
@@ -78,7 +78,7 @@ Instruction frequencies listed in Tables 5.2.1, 5.3.1, 5.4.1 and 5.5.1 are also 
 
 ## 2. Algorithm description
 
-The DefyX algorithm accepts two input values:
+The RandomX algorithm accepts two input values:
 
 * String `K` with a size of 0-60 bytes (key)
 * String `H` of arbitrary length (the value to be hashed)
@@ -152,7 +152,7 @@ key3 = 35 81 ef 6a 7c 31 ba b1 88 4c 31 16 54 91 16 49
 ```
 These keys were generated as:
 ```
-key0, key1, key2, key3 = Hash512("DefyX AesGenerator1R keys")
+key0, key1, key2, key3 = Hash512("RandomX AesGenerator1R keys")
 ```
 
 
@@ -207,8 +207,8 @@ key7 = 09 d6 7c 7a de 39 58 91 fd d1 06 0c 2d 76 b0 c0
 ```
 These keys were generated as:
 ```
-key0, key1, key2, key3 = Hash512("DefyX AesGenerator4R keys 0-3")
-key4, key5, key6, key7 = Hash512("DefyX AesGenerator4R keys 4-7")
+key0, key1, key2, key3 = Hash512("RandomX AesGenerator4R keys 0-3")
+key4, key5, key6, key7 = Hash512("RandomX AesGenerator4R keys 4-7")
 ```
 
 ### 3.4 AesHash1R
@@ -226,7 +226,7 @@ state3 = 0c 24 0a 63 8d 82 ad 07 05 00 a1 79 48 49 99 7e
 
 The initial state vectors were generated as:
 ```
-state0, state1, state2, state3 = Hash512("DefyX AesHash1R state")
+state0, state1, state2, state3 = Hash512("RandomX AesHash1R state")
 ```
 
 The input is processed in 64-byte blocks. Each input block is considered to be a set of four AES round keys `key0`, `key1`, `key2`, `key3`. Each state column is encrypted (columns 0, 2) or decrypted (columns 1, 3) with one AES round using the corresponding round key:
@@ -250,7 +250,7 @@ xkey1 = d1 63 b2 61 3c e0 f4 51 c6 43 10 ee 9b f9 18 ed
 
 The extra keys were generated as:
 ```
-xkey0, xkey1 = Hash256("DefyX AesHash1R xkeys")
+xkey0, xkey1 = Hash256("RandomX AesHash1R xkeys")
 ```
 
 ```
@@ -269,21 +269,21 @@ finalState0      finalState1      finalState2      finalState3
 
 The final state is the output of the function.
 
-### 3.4 BlakeGenerator
+### 3.5 BlakeGenerator
 
 BlakeGenerator is a simple pseudo-random number generator based on the Blake2b hashing function. It has a 64-byte internal state `S`.
 
-#### 3.4.1 Initialization
+#### 3.5.1 Initialization
 
 The internal state is initialized from a seed value `K` (0-60 bytes long). The seed value is written into the internal state and padded with zeroes. Then the internal state is initialized as `S = Hash512(S)`.
 
-#### 3.4.2 Random number generation
+#### 3.5.2 Random number generation
 
 The generator can generate 1 byte or 4 bytes at a time by supplying data from its internal state `S`. If there are not enough unused bytes left, the internal state is reinitialized as `S = Hash512(S)`.
 
 ## 4. Virtual Machine
 
-The components of the DefyX virtual machine are summarized in Fig. 4.1.
+The components of the RandomX virtual machine are summarized in Fig. 4.1.
 
 *Figure 4.1 - Virtual Machine*
 
@@ -329,7 +329,7 @@ Floating point registers `f0`-`f3` are the "additive" registers, which can be th
 
 Floating point registers `e0`-`e3` are the "multiplicative" registers, which can be the destination of floating point multiplication, division and square root instructions. Their value is always positive.
 
-`ma` and `mx` are the memory registers. Both are 32 bits wide. `ma` contains the memory address of the next Dataset read and `mx` contains the address of the next Dataset prefetch.
+`ma` and `mx` are the memory registers. Both are 32 bits wide. `ma` contains the memory address of the next Dataset read and `mx` contains the address of the next Dataset prefetch. The values of `ma` and `mx` registers are always aligned to be a multiple of 64.
 
 The 2-bit `fprc` register determines the rounding mode of all floating point operations according to Table 4.3.1. The four rounding modes are defined by the IEEE 754 standard.
 
@@ -422,7 +422,7 @@ Bits 0-3 of quadword 12 are used to select 4 address registers for program execu
 
 #### 4.5.5 Dataset offset
 
-The `datasetOffset` is calculated by bitwise AND of quadword 13 and the value `RANDOMX_DATASET_EXTRA_SIZE / 64`. The result is multiplied by `64`. This offset is used when reading values from the Dataset.
+The `datasetOffset` is calculated as the remainder of dividing quadword 13 by `RANDOMX_DATASET_EXTRA_SIZE / 64 + 1`. The result is multiplied by `64`. This offset is used when reading values from the Dataset.
 
 #### 4.5.6 Group E register masks
 
@@ -477,10 +477,10 @@ There are 256 opcodes, which are distributed between 29 distinct instructions. E
 
 |group|# instructions|# opcodes||
 |---------|-----------------|----|-|
-|integer |17|129|50.4%|
+|integer |17|120|46.9%|
 |floating point |9|94|36.7%|
-|control |2|17|6.6%|
-|store |1|16|6.3%|
+|control |2|26|10.2%|
+|store |1|16|6.2%|
 ||**29**|**256**|**100%**
 
 All instructions are described below in chapters 5.2 - 5.5.
@@ -553,7 +553,7 @@ For integer instructions, the destination is always an integer register (registe
 
 |frequency|instruction|dst|src|`src == dst ?`|operation|
 |-|-|-|-|-|-|
-|25/256|IADD_RS|R|R|`src = dst`|`dst = dst + (src << mod.shift) (+ imm32)`|
+|16/256|IADD_RS|R|R|`src = dst`|`dst = dst + (src << mod.shift) (+ imm32)`|
 |7/256|IADD_M|R|R|`src = 0`|`dst = dst + [mem]`|
 |16/256|ISUB_R|R|R|`src = imm32`|`dst = dst - src`|
 |7/256|ISUB_M|R|R|`src = 0`|`dst = dst - [mem]`|
@@ -664,7 +664,7 @@ There are 2 control instructions.
 |frequency|instruction|dst|src|operation|
 |-|-|-|-|-|
 |1/256|CFROUND|-|R|`fprc = src >>> imm32`
-|16/256|CBRANCH|R|-|`dst = dst + cimm`, conditional jump
+|25/256|CBRANCH|R|-|`dst = dst + cimm`, conditional jump
 
 #### 5.4.1 CFROUND
 This instruction calculates a 2-bit value by rotating the source register right by `imm32` bits and taking the 2 least significant bits (the value of the source register is unaffected). The result is stored in the `fprc` register. This changes the rounding mode of all subsequent floating point instructions.
@@ -771,7 +771,7 @@ See chapter 5.2.6. `imm32` is never 0 or a power of 2.
 
 ### 6.2 The reference CPU
 
-Unlike a standard DefyX program, a SuperscalarHash program is generated using a strict set of rules to achieve the maximum performance on a superscalar CPU. For this purpose, the generator runs a simulation of a reference CPU.
+Unlike a standard RandomX program, a SuperscalarHash program is generated using a strict set of rules to achieve the maximum performance on a superscalar CPU. For this purpose, the generator runs a simulation of a reference CPU.
 
 The reference CPU is loosely based on the [Intel Ivy Bridge microarchitecture](https://en.wikipedia.org/wiki/Ivy_Bridge_(microarchitecture)). It has the following properties:
 
@@ -882,7 +882,7 @@ The Dataset is a read-only memory structure that is used during program executio
 
 In order to allow PoW verification with a lower amount of memory, the Dataset is constructed in two steps using an intermediate structure called the "Cache", which can be used to calculate Dataset items on the fly.
 
-The whole Dataset is constructed from the key value `K`, which is an input parameter of DefyX. The whole Dataset needs to be recalculated everytime the key value changes. Fig. 7.1 shows the process of Dataset construction.
+The whole Dataset is constructed from the key value `K`, which is an input parameter of RandomX. The whole Dataset needs to be recalculated everytime the key value changes. Fig. 7.1 shows the process of Dataset construction. Note: the maximum supported length of `K` is 60 bytes. Using a longer key results in implementation-defined behavior.
 
 *Figure 7.1 - Dataset construction*
 
@@ -911,7 +911,7 @@ The finalizer and output calculation steps of Argon2 are omitted. The output is 
 
 ### 7.2 SuperscalarHash initialization
 
-The key value `K` is used to initialize a BlakeGenerator (see chapter 3.4), which is then used to generate 8 SuperscalarHash instances for Dataset initialization.
+The key value `K` is used to initialize a BlakeGenerator (see chapter 3.5), which is then used to generate 8 SuperscalarHash instances for Dataset initialization.
 
 ### 7.3 Dataset block generation
 Dataset items are numbered sequentially with `itemNumber` starting from 0. Each 64-byte Dataset item is generated independently using 8 SuperscalarHash functions (generated according to chapter 7.2) and by XORing randomly selected data from the Cache (constructed according to chapter 7.1).
@@ -939,5 +939,5 @@ The item data is represented by 8 64-bit integer registers: `r0`-`r7`.
 The constants used to initialize register values in step 1 were determined as follows:
 
 * Multiplier `6364136223846793005` was selected because it gives an excellent distribution for linear generators (D. Knuth: The Art of Computer Programming – Vol 2., also listed in [Commonly used LCG parameters](https://en.wikipedia.org/wiki/Linear_congruential_generator#Parameters_in_common_use))
-* XOR constants used to initialize registers `r1`-`r7` were determined by calculating `Hash512` of the ASCII value `"DefyX SuperScalarHash initialize"` and taking bytes 8-63 as 7 little-endian unsigned 64-bit integers. Additionally, the constant for `r1` was increased by <code>2<sup>33</sup>+700</code> and the constant for `r3` was increased by <code>2<sup>14</sup></code> (these changes are necessary to ensure that all registers have unique initial values for all values of `itemNumber`).
+* XOR constants used to initialize registers `r1`-`r7` were determined by calculating `Hash512` of the ASCII value `"RandomX SuperScalarHash initialize"` and taking bytes 8-63 as 7 little-endian unsigned 64-bit integers. Additionally, the constant for `r1` was increased by <code>2<sup>33</sup>+700</code> and the constant for `r3` was increased by <code>2<sup>14</sup></code> (these changes are necessary to ensure that all registers have unique initial values for all values of `itemNumber`).
 

@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "argon2_core.h"
-#include "blake2/blake2.h"
-#include "blake2/blake2-impl.h"
+#include "blake2_yespower_k12/blake2_yk12.h"
+#include "blake2_yespower_k12/blake2-impl.h"
 
 #ifdef GENKAT
 #include "genkat.h"
@@ -261,19 +261,6 @@ int rxa2_fill_memory_blocks(argon2_instance_t *instance) {
 int rxa2_validate_inputs(const argon2_context *context) {
 	if (NULL == context) {
 		return ARGON2_INCORRECT_PARAMETER;
-	}
-
-	if (NULL == context->out) {
-		return ARGON2_OUTPUT_PTR_NULL;
-	}
-
-	/* Validate output length */
-	if (ARGON2_MIN_OUTLEN > context->outlen) {
-		return ARGON2_OUTPUT_TOO_SHORT;
-	}
-
-	if (ARGON2_MAX_OUTLEN < context->outlen) {
-		return ARGON2_OUTPUT_TOO_LONG;
 	}
 
 	/* Validate password (required param) */

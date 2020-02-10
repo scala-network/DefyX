@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\defyx.h">
+    <ClInclude Include="..\src\randomx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\aes_hash.hpp">
@@ -139,7 +139,7 @@
     <ClCompile Include="..\src\jit_compiler_x86.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\defyx.cpp">
+    <ClCompile Include="..\src\randomx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\soft_aes.cpp">

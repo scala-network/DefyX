@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-namespace defyx {
+namespace randomx {
 
 	class Blake2Generator {
 	public:

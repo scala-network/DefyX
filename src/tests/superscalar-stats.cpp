@@ -8,7 +8,7 @@ const uint8_t seed[32] = { 191, 182, 222, 175, 249, 89, 134, 104, 241, 68, 191, 
 int main() {
 
 	constexpr int count = 1000000;
-	int isnCounts[(int)defyx::SuperscalarInstructionType::COUNT] = { 0 };
+	int isnCounts[(int)randomx::SuperscalarInstructionType::COUNT] = { 0 };
 	int64_t asicLatency = 0;
 	int64_t codesize = 0;
 	int64_t cpuLatency = 0;
@@ -16,9 +16,9 @@ int main() {
 	int64_t mulCount = 0;
 	int64_t size = 0;
 	for (int i = 0; i < count; ++i) {
-		defyx::SuperscalarProgram prog;
-		defyx::Blake2Generator gen(seed, i);
-		defyx::generateSuperscalar(prog, gen);
+		randomx::SuperscalarProgram prog;
+		randomx::Blake2Generator gen(seed, i);
+		randomx::generateSuperscalar(prog, gen);
 		asicLatency += prog.asicLatency;
 		codesize += prog.codeSize;
 		cpuLatency += prog.cpuLatency;
@@ -41,10 +41,10 @@ int main() {
 	std::cout << "Avg. code size: " << (codesize / (double)count) << std::endl;
 	std::cout << "Avg. x86 ops: " << (macroOps / (double)count) << std::endl;
 	std::cout << "Avg. mul. count: " << (mulCount / (double)count) << std::endl;
-	std::cout << "Avg. DefyX ops: " << (size / (double)count) << std::endl;
+	std::cout << "Avg. RandomX ops: " << (size / (double)count) << std::endl;
 
 	std::cout << "Frequencies: " << std::endl;
-	for (unsigned j = 0; j < (int)defyx::SuperscalarInstructionType::COUNT; ++j) {
+	for (unsigned j = 0; j < (int)randomx::SuperscalarInstructionType::COUNT; ++j) {
 		std::cout << j << " " << isnCounts[j] << " " << isnCounts[j] / (double)size << std::endl;
 	}
 

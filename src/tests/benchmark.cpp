@@ -36,8 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include "stopwatch.hpp"
 #include "utility.hpp"
-#include "../defyx.h"
-#include "../blake2/endian.h"
+#include "../randomx.h"
+#include "../blake2_yespower_k12/endian.h"
 #include "../common.hpp"
 #ifdef _WIN32
 #include <windows.h>
@@ -81,9 +81,10 @@ void printUsage(const char* executable) {
 	std::cout << "  --help        shows this message" << std::endl;
 	std::cout << "  --mine        mining mode: 2080 MiB" << std::endl;
 	std::cout << "  --verify      verification mode: 256 MiB" << std::endl;
-	std::cout << "  --jit         x86-64 JIT compiled mode (default: interpreter)" << std::endl;
-	std::cout << "  --largePages  use large pages" << std::endl;
-	std::cout << "  --softAes     use software AES (default: x86 AES-NI)" << std::endl;
+	std::cout << "  --jit         JIT compiled mode (default: interpreter)" << std::endl;
+	std::cout << "  --secure      W^X policy for JIT pages (default: off)" << std::endl;
+	std::cout << "  --largePages  use large pages (default: small pages)" << std::endl;
+	std::cout << "  --softAes     use software AES (default: hardware AES)" << std::endl;
 	std::cout << "  --threads T   use T threads (default: 1)" << std::endl;
 	std::cout << "  --affinity A  thread affinity bitmask (default: 0)" << std::endl;
 	std::cout << "  --init Q      initialize dataset with Q threads (default: 1)" << std::endl;
@@ -104,7 +105,7 @@ struct DatasetAllocException : public MemoryException {
 	}
 };
 
-void mine(defyx_vm* vm, std::atomic<uint32_t>& atomicNonce, AtomicHash& result, uint32_t noncesCount, int thread, int cpuid=-1) {
+void mine(randomx_vm* vm, std::atomic<uint32_t>& atomicNonce, AtomicHash& result, uint32_t noncesCount, int thread, int cpuid=-1) {
 	if (cpuid >= 0) {
 		int rc = set_thread_affinity(cpuid);
 		if (rc) {
@@ -119,14 +120,14 @@ void mine(defyx_vm* vm, std::atomic<uint32_t>& atomicNonce, AtomicHash& result, 
 
 	while (nonce < noncesCount) {
 		store32(noncePtr, nonce);
-		defyx_calculate_hash(vm, blockTemplate, sizeof(blockTemplate), &hash);
+		randomx_calculate_hash(vm, blockTemplate, sizeof(blockTemplate), &hash);
 		result.xorWith(hash);
 		nonce = atomicNonce.fetch_add(1);
 	}
 }
 
 int main(int argc, char** argv) {
-	bool softAes, miningMode, verificationMode, help, largePages, jit;
+	bool softAes, miningMode, verificationMode, help, largePages, jit, secure;
 	int noncesCount, threadCount, initThreadCount;
 	uint64_t threadAffinity;
 	int32_t seedValue;
@@ -141,12 +142,16 @@ int main(int argc, char** argv) {
 	readIntOption("--init", argc, argv, initThreadCount, 1);
 	readIntOption("--seed", argc, argv, seedValue, 0);
 	readOption("--largePages", argc, argv, largePages);
+	if (!largePages) {
+		readOption("--largepages", argc, argv, largePages);
+	}
 	readOption("--jit", argc, argv, jit);
 	readOption("--help", argc, argv, help);
+	readOption("--secure", argc, argv, secure);
 
 	store32(&seed, seedValue);
 
-	std::cout << "DefyX benchmark v0.0.1" << std::endl;
+	std::cout << "RandomX benchmark v1.1.3" << std::endl;
 
 	if (help || (!miningMode && !verificationMode)) {
 		printUsage(argv[0]);
@@ -155,23 +160,28 @@ int main(int argc, char** argv) {
 
 	std::atomic<uint32_t> atomicNonce(0);
 	AtomicHash result;
-	std::vector<defyx_vm*> vms;
+	std::vector<randomx_vm*> vms;
 	std::vector<std::thread> threads;
-	defyx_dataset* dataset;
-	defyx_cache* cache;
-	defyx_flags flags = RANDOMX_FLAG_DEFAULT;
+	randomx_dataset* dataset;
+	randomx_cache* cache;
+	randomx_flags flags = RANDOMX_FLAG_DEFAULT;
 
 	if (miningMode) {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_FULL_MEM);
-		std::cout << " - full memory mode" << std::endl;
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_FULL_MEM);
+		std::cout << " - full memory mode (2080 MiB)" << std::endl;
 	}
 	else {
-		std::cout << " - light memory mode" << std::endl;
+		std::cout << " - light memory mode (256 MiB)" << std::endl;
 	}
 
 	if (jit) {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_JIT);
-		std::cout << " - JIT compiled mode" << std::endl;
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_JIT);
+		std::cout << " - JIT compiled mode ";
+		if (secure) {
+			flags = (randomx_flags)(flags | RANDOMX_FLAG_SECURE);
+			std::cout << "(secure)";
+		}
+		std::cout << std::endl;
 	}
 	else {
 		std::cout << " - interpreted mode" << std::endl;
@@ -181,12 +191,12 @@ int main(int argc, char** argv) {
 		std::cout << " - software AES mode" << std::endl;
 	}
 	else {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_HARD_AES);
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_HARD_AES);
 		std::cout << " - hardware AES mode" << std::endl;
 	}
 
 	if (largePages) {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_LARGE_PAGES);
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_LARGE_PAGES);
 		std::cout << " - large pages mode" << std::endl;
 	}
 	else {
@@ -211,24 +221,24 @@ int main(int argc, char** argv) {
 		}
 
 		Stopwatch sw(true);
-		cache = defyx_alloc_cache(flags);
+		cache = randomx_alloc_cache(flags);
 		if (cache == nullptr) {
 			throw CacheAllocException();
 		}
-		defyx_init_cache(cache, &seed, sizeof(seed));
+		randomx_init_cache(cache, &seed, sizeof(seed));
 		if (miningMode) {
-			dataset = defyx_alloc_dataset(flags);
+			dataset = randomx_alloc_dataset(flags);
 			if (dataset == nullptr) {
 				throw DatasetAllocException();
 			}
-			uint32_t datasetItemCount = defyx_dataset_item_count();
+			uint32_t datasetItemCount = randomx_dataset_item_count();
 			if (initThreadCount > 1) {
 				auto perThread = datasetItemCount / initThreadCount;
 				auto remainder = datasetItemCount % initThreadCount;
 				uint32_t startItem = 0;
 				for (int i = 0; i < initThreadCount; ++i) {
 					auto count = perThread + (i == initThreadCount - 1 ? remainder : 0);
-					threads.push_back(std::thread(&defyx_init_dataset, dataset, cache, startItem, count));
+					threads.push_back(std::thread(&randomx_init_dataset, dataset, cache, startItem, count));
 					startItem += count;
 				}
 				for (unsigned i = 0; i < threads.size(); ++i) {
@@ -236,15 +246,16 @@ int main(int argc, char** argv) {
 				}
 			}
 			else {
-				defyx_init_dataset(dataset, cache, 0, datasetItemCount);
+				randomx_init_dataset(dataset, cache, 0, datasetItemCount);
 			}
-			defyx_release_cache(cache);
+			randomx_release_cache(cache);
+			cache = nullptr;
 			threads.clear();
 		}
 		std::cout << "Memory initialized in " << sw.getElapsed() << " s" << std::endl;
 		std::cout << "Initializing " << threadCount << " virtual machine(s) ..." << std::endl;
 		for (int i = 0; i < threadCount; ++i) {
-			defyx_vm *vm = defyx_create_vm(flags, cache, dataset);
+			randomx_vm *vm = randomx_create_vm(flags, cache, dataset);
 			if (vm == nullptr) {
 				if (!softAes) {
 					throw std::runtime_error("Cannot create VM with the selected options. Try using --softAes");
@@ -278,15 +289,15 @@ int main(int argc, char** argv) {
 
 		double elapsed = sw.getElapsed();
 		for (unsigned i = 0; i < vms.size(); ++i)
-			defyx_destroy_vm(vms[i]);
+			randomx_destroy_vm(vms[i]);
 		if (miningMode)
-			defyx_release_dataset(dataset);
+			randomx_release_dataset(dataset);
 		else
-			defyx_release_cache(cache);
+			randomx_release_cache(cache);
 		std::cout << "Calculated result: ";
 		result.print(std::cout);
 		if (noncesCount == 1000 && seedValue == 0)
-			std::cout << "Reference result:  38d47ea494480bff8d621189e8e92747288bb1da6c75dc401f2ab4b6807b6010" << std::endl;
+			std::cout << "Reference result:  067133a7e4033f0495cd05c281e1af95091421a62268f5f48bc7ba0799cfba9f" << std::endl;
 		if (!miningMode) {
 			std::cout << "Performance: " << 1000 * elapsed / noncesCount << " ms per hash" << std::endl;
 		}

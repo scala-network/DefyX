@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <limits>
 #include <cstring>
+#include <cassert>
 
 #include "common.hpp"
 #include "dataset.hpp"
@@ -45,29 +46,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "superscalar.hpp"
 #include "blake2_generator.hpp"
 #include "reciprocal.h"
-#include "blake2/endian.h"
+#include "blake2_yespower_k12/endian.h"
 #include "argon2.h"
 #include "argon2_core.h"
 #include "jit_compiler.hpp"
 #include "intrin_portable.h"
 
 static_assert(RANDOMX_ARGON_MEMORY % (RANDOMX_ARGON_LANES * ARGON2_SYNC_POINTS) == 0, "RANDOMX_ARGON_MEMORY - invalid value");
-static_assert(ARGON2_BLOCK_SIZE == defyx::ArgonBlockSize, "Unpexpected value of ARGON2_BLOCK_SIZE");
+static_assert(ARGON2_BLOCK_SIZE == randomx::ArgonBlockSize, "Unpexpected value of ARGON2_BLOCK_SIZE");
 
-namespace defyx {
+namespace randomx {
 
 	template<class Allocator>
-	void deallocCache(defyx_cache* cache) {
+	void deallocCache(randomx_cache* cache) {
 		if (cache->memory != nullptr)
 			Allocator::freeMemory(cache->memory, CacheSize);
 		if (cache->jit != nullptr)
 			delete cache->jit;
 	}
 
-	template void deallocCache<DefaultAllocator>(defyx_cache* cache);
-	template void deallocCache<LargePageAllocator>(defyx_cache* cache);
+	template void deallocCache<DefaultAllocator>(randomx_cache* cache);
+	template void deallocCache<LargePageAllocator>(randomx_cache* cache);
 
-	void initCache(defyx_cache* cache, const void* key, size_t keySize) {
+	void initCache(randomx_cache* cache, const void* key, size_t keySize) {
 		uint32_t memory_blocks, segment_length;
 		argon2_instance_t instance;
 		argon2_context context;
@@ -77,7 +78,7 @@ namespace defyx {
 		context.pwd = CONST_CAST(uint8_t *)key;
 		context.pwdlen = (uint32_t)keySize;
 		context.salt = CONST_CAST(uint8_t *)RANDOMX_ARGON_SALT;
-		context.saltlen = (uint32_t)defyx::ArgonSaltSize;
+		context.saltlen = (uint32_t)randomx::ArgonSaltSize;
 		context.secret = NULL;
 		context.secretlen = 0;
 		context.ad = NULL;
@@ -90,6 +91,9 @@ namespace defyx {
 		context.free_cbk = NULL;
 		context.flags = ARGON2_DEFAULT_FLAGS;
 		context.version = ARGON2_VERSION_NUMBER;
+
+		int inputsValid = rxa2_validate_inputs(&context);
+		assert(inputsValid == ARGON2_OK);
 
 		/* 2. Align memory size */
 		/* Minimum memory_blocks = 8L blocks, where L is the number of lanes */
@@ -120,13 +124,13 @@ namespace defyx {
 		rxa2_fill_memory_blocks(&instance);
 
 		cache->reciprocalCache.clear();
-		defyx::Blake2Generator gen(key, keySize);
+		randomx::Blake2Generator gen(key, keySize);
 		for (int i = 0; i < RANDOMX_CACHE_ACCESSES; ++i) {
-			defyx::generateSuperscalar(cache->programs[i], gen);
+			randomx::generateSuperscalar(cache->programs[i], gen);
 			for (unsigned j = 0; j < cache->programs[i].getSize(); ++j) {
 				auto& instr = cache->programs[i](j);
 				if ((SuperscalarInstructionType)instr.opcode == SuperscalarInstructionType::IMUL_RCP) {
-					auto rcp = defyx_reciprocal(instr.getImm32());
+					auto rcp = randomx_reciprocal(instr.getImm32());
 					instr.setImm32(cache->reciprocalCache.size());
 					cache->reciprocalCache.push_back(rcp);
 				}
@@ -134,10 +138,12 @@ namespace defyx {
 		}
 	}
 
-	void initCacheCompile(defyx_cache* cache, const void* key, size_t keySize) {
+	void initCacheCompile(randomx_cache* cache, const void* key, size_t keySize) {
 		initCache(cache, key, keySize);
+		cache->jit->enableWriting();
 		cache->jit->generateSuperscalarHash(cache->programs, cache->reciprocalCache);
 		cache->jit->generateDatasetInitCode();
+		cache->jit->enableExecution();
 	}
 
 	constexpr uint64_t superscalarMul0 = 6364136223846793005ULL;
@@ -154,7 +160,7 @@ namespace defyx {
 		return memory + (registerValue & mask) * CacheLineSize;
 	}
 
-	void initDatasetItem(defyx_cache* cache, uint8_t* out, uint64_t itemNumber) {
+	void initDatasetItem(randomx_cache* cache, uint8_t* out, uint64_t itemNumber) {
 		int_reg_t rl[8];
 		uint8_t* mixBlock;
 		uint64_t registerValue = itemNumber;
@@ -182,7 +188,7 @@ namespace defyx {
 		memcpy(out, &rl, CacheLineSize);
 	}
 
-	void initDataset(defyx_cache* cache, uint8_t* dataset, uint32_t startItem, uint32_t endItem) {
+	void initDataset(randomx_cache* cache, uint8_t* dataset, uint32_t startItem, uint32_t endItem) {
 		for (uint32_t itemNumber = startItem; itemNumber < endItem; ++itemNumber, dataset += CacheLineSize)
 			initDatasetItem(cache, dataset, itemNumber);
 	}

@@ -39,9 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "argon2.h"
 #include "argon2_core.h"
 
-#include "blake2/blamka-round-ref.h"
-#include "blake2/blake2-impl.h"
-#include "blake2/blake2.h"
+#include "blake2_yespower_k12/blamka-round-ref.h"
+#include "blake2_yespower_k12/blake2-impl.h"
+#include "blake2_yespower_k12/blake2_yk12.h"
 
  /*
   * Function fills a new memory block and optionally XORs the old block over the new one.

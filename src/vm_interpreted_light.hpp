@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <new>
 #include "vm_interpreted.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	template<class Allocator, bool softAes>
 	class InterpretedLightVm : public InterpretedVm<Allocator, softAes> {
@@ -47,8 +47,8 @@ namespace defyx {
 		void operator delete(void* ptr) {
 			AlignedAllocator<CacheLineSize>::freeMemory(ptr, sizeof(InterpretedLightVm));
 		}
-		void setDataset(defyx_dataset* dataset) override { }
-		void setCache(defyx_cache* cache) override;
+		void setDataset(randomx_dataset* dataset) override { }
+		void setCache(randomx_cache* cache) override;
 	protected:
 		void datasetRead(uint64_t address, int_reg_t(&r)[8]) override;
 		void datasetPrefetch(uint64_t address) override { }

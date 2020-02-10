@@ -3,7 +3,7 @@
 #include "../program.hpp"
 #include "utility.hpp"
 #include "stopwatch.hpp"
-#include "../blake2/blake2.h"
+#include "../blake2_yespower_k12/blake2_yk12.h"
 #include "../reciprocal.h"
 
 int main(int argc, char** argv) {
@@ -15,10 +15,10 @@ int main(int argc, char** argv) {
 
 	blake2b(&hash, sizeof hash, &seed, sizeof seed, nullptr, 0);
 
-	defyx::ProgramConfiguration config;
+	randomx::ProgramConfiguration config;
 
-	defyx::Program program;
-	defyx::JitCompilerX86 jit;
+	randomx::Program program;
+	randomx::JitCompilerX86 jit;
 
 	std::cout << "Compiling " << count << " programs..." << std::endl;
 

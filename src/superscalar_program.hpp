@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "instruction.hpp"
 #include "common.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	class SuperscalarProgram {
 	public:

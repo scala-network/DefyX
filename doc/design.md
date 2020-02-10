@@ -1,7 +1,7 @@
-# DefyX design
+# RandomX design
 To minimize the performance advantage of specialized hardware, a proof of work (PoW) algorithm must achieve *device binding* by targeting specific features of existing general-purpose hardware. This is a complex task because we have to target a large class of devices with different architectures from different manufacturers.
 
-There are two distinct classes of general processing devices: central processing units (CPUs) and graphics processing units (GPUs). DefyX targets CPUs for the following reasons:
+There are two distinct classes of general processing devices: central processing units (CPUs) and graphics processing units (GPUs). RandomX targets CPUs for the following reasons:
 
 * CPUs, being less specialized devices, are more prevalent and widely accessible. A CPU-bound algorithm is more egalitarian and allows more participants to join the network. This is one of the goals stated in the original CryptoNote whitepaper [[1](https://cryptonote.org/whitepaper.pdf)]. 
 * A large common subset of native hardware instructions exists among different CPU architectures. The same cannot be said about GPUs. For example, there is no common integer multiplication instruction for NVIDIA and AMD GPUs [[2](https://github.com/ifdefelse/ProgPOW/issues/16)].
@@ -52,13 +52,13 @@ The actual program execution should utilize as many CPU components as possible. 
     * speculative execution [[10](https://en.wikipedia.org/wiki/Speculative_execution)]
     * register renaming [[11](https://en.wikipedia.org/wiki/Register_renaming)]
 
-Chapter 2 describes how the DefyX VM takes advantages of these features.
+Chapter 2 describes how the RandomX VM takes advantages of these features.
 
 #### 1.1.4 Calculating the final result
 
 Blake2b [[12](https://blake2.net/)] is a cryptographically secure hashing function that was specifically designed to be fast in software, especially on modern 64-bit processors, where it's around three times faster than SHA-3 and can run at a speed of around 3 clock cycles per byte of input. This function is an ideal candidate to be used in a CPU-friendly proof of work.
 
-For processing larger amounts of data in a cryptographically secure way, the Advanced Encryption Standard (AES) [[13](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)] can provide the fastest processing speed because many modern CPUs support hardware acceleration of these operations. See chapter 3 for more details about the use of AES in DefyX.
+For processing larger amounts of data in a cryptographically secure way, the Advanced Encryption Standard (AES) [[13](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)] can provide the fastest processing speed because many modern CPUs support hardware acceleration of these operations. See chapter 3 for more details about the use of AES in RandomX.
 
 ### 1.2 The "Easy program problem"
 
@@ -83,7 +83,7 @@ Additionally, this chained program execution has the benefit of equalizing the r
 
 ### 1.3 Verification time
 
-Since the purpose of the proof of work is to be used in a trustless peer-to-peer network, network participants must be able to quickly verify if a proof is valid or not. This puts an upper bound on the complexity of the proof of work algorithm. In particular, we set a goal for DefyX to be at least as fast to verify as the CryptoNight hash function [[15](https://cryptonote.org/cns/cns008.txt)], which it aims to replace.
+Since the purpose of the proof of work is to be used in a trustless peer-to-peer network, network participants must be able to quickly verify if a proof is valid or not. This puts an upper bound on the complexity of the proof of work algorithm. In particular, we set a goal for RandomX to be at least as fast to verify as the CryptoNight hash function [[15](https://cryptonote.org/cns/cns008.txt)], which it aims to replace.
 
 ### 1.4 Memory-hardness
 
@@ -99,7 +99,7 @@ In order to utilize the external memory as well as the on-chip memory controller
 1. larger than what can be stored on-chip (to require external memory)
 2. dynamic (to require writable memory)
 
-The maximum amount of SRAM that can be put on a single chip is more than 512 MiB for a 16 nm process and more than 2 GiB for a 7 nm process [[18](https://www.grin-forum.org/t/obelisk-grn1-chip-details/4571)]. Ideally, the size of the Dataset should be at least 4 GiB. However, due to constraints on the verification time (see below), the size used by DefyX was selected to be 2080 MiB. While a single chip can theoretically be made with this amount of SRAM using current technology (7 nm in 2019), the feasibility of such solution is questionable, at least in the near future.
+The maximum amount of SRAM that can be put on a single chip is more than 512 MiB for a 16 nm process and more than 2 GiB for a 7 nm process [[18](https://www.grin-forum.org/t/obelisk-grn1-chip-details/4571)]. Ideally, the size of the Dataset should be at least 4 GiB. However, due to constraints on the verification time (see below), the size used by RandomX was selected to be 2080 MiB. While a single chip can theoretically be made with this amount of SRAM using current technology (7 nm in 2019), the feasibility of such solution is questionable, at least in the near future.
 
 #### 1.4.1 Light-client verification
 
@@ -127,15 +127,15 @@ or 32 MiB when rounded to the nearest power of 2. The total memory requirement o
 
 ## 2. Virtual machine architecture
 
-This section describes the design of the DefyX virtual machine (VM).
+This section describes the design of the RandomX virtual machine (VM).
 
 ### 2.1 Instruction set
 
-DefyX uses a fixed-length instruction encoding with 8 bytes per instruction. This allows a 32-bit immediate value to be included in the instruction word. The interpretation of the instruction word bits was chosen so that any 8-byte word is a valid instruction. This allows for very efficient random program generation (see chapter 1.1.1).
+RandomX uses a fixed-length instruction encoding with 8 bytes per instruction. This allows a 32-bit immediate value to be included in the instruction word. The interpretation of the instruction word bits was chosen so that any 8-byte word is a valid instruction. This allows for very efficient random program generation (see chapter 1.1.1).
 
 #### 2.1.1 Instruction complexity
 
-The VM is a complex instruction set machine that allows both register and memory addressed operands. However, each DefyX instructions translates to only 1-7 x86 instructions (1.8 on average). It is important to keep the instruction complexity relatively low to minimize the efficiency advantage of specialized hardware with a tailored instruction set.
+The VM is a complex instruction set machine that allows both register and memory addressed operands. However, each RandomX instructions translates to only 1-7 x86 instructions (1.8 on average). It is important to keep the instruction complexity relatively low to minimize the efficiency advantage of specialized hardware with a tailored instruction set.
 
 ### 2.2 Program
 
@@ -151,7 +151,7 @@ The VM uses 8 integer registers and 12 floating point registers. This is the max
 
 ### 2.4 Integer operations
 
-DefyX uses all primitive integer operations that have high output entropy: addition (IADD_RS, IADD_M), subtraction (ISUB_R, ISUB_M, INEG_R), multiplication (IMUL_R, IMUL_M, IMULH_R, IMULH_M, ISMULH_R, ISMULH_M, IMUL_RCP), exclusive or (IXOR_R, IXOR_M) and rotation (IROR_R, IROL_R).
+RandomX uses all primitive integer operations that have high output entropy: addition (IADD_RS, IADD_M), subtraction (ISUB_R, ISUB_M, INEG_R), multiplication (IMUL_R, IMUL_M, IMULH_R, IMULH_M, ISMULH_R, ISMULH_M, IMUL_RCP), exclusive or (IXOR_R, IXOR_M) and rotation (IROR_R, IROL_R).
 
 #### 2.4.1 IADD_RS
 
@@ -171,9 +171,9 @@ This instruction can be executed efficiently by CPUs that support register renam
 
 ### 2.5 Floating point operations
 
-DefyX uses double precision floating point operations, which are supported by the majority of CPUs and require more complex hardware than single precision. All operations are performed as 128-bit vector operations, which is also supported by all major CPU architectures.
+RandomX uses double precision floating point operations, which are supported by the majority of CPUs and require more complex hardware than single precision. All operations are performed as 128-bit vector operations, which is also supported by all major CPU architectures.
 
-DefyX uses five operations that are guaranteed by the IEEE 754 standard to give correctly rounded results: addition, subtraction, multiplication, division and square root. All 4 rounding modes defined by the standard are used.
+RandomX uses five operations that are guaranteed by the IEEE 754 standard to give correctly rounded results: addition, subtraction, multiplication, division and square root. All 4 rounding modes defined by the standard are used.
 
 #### 2.5.1 Floating point register groups
 
@@ -225,13 +225,13 @@ In general, random branches must be designed in such way that:
 
 #### 2.6.1 Branch prediction
 
-Unfortunately, we haven't found a way how to utilize branch prediction in DefyX. Because DefyX is a consensus protocol, all the rules must be set out in advance, which includes the rules for branches. Fully predictable branches cannot depend on the runtime value of any VM register (since register values are pseudorandom and unpredictable), so they would have to be static and therefore easily optimizable by specialized hardware.
+Unfortunately, we haven't found a way how to utilize branch prediction in RandomX. Because RandomX is a consensus protocol, all the rules must be set out in advance, which includes the rules for branches. Fully predictable branches cannot depend on the runtime value of any VM register (since register values are pseudorandom and unpredictable), so they would have to be static and therefore easily optimizable by specialized hardware.
 
 #### 2.6.2 CBRANCH instruction
 
-DefyX therefore uses random branches with a jump probability of 1/256 and branch condition that depends on an integer register value. These branches will be predicted as "not taken" by the CPU. Such branches are "free" in most CPU designs unless they are taken. While this doesn't take advantage of the branch predictors, speculative designs will see a significant performance boost compared to non-speculative branch handling - see Appendix B for more information.
+RandomX therefore uses random branches with a jump probability of 1/256 and branch condition that depends on an integer register value. These branches will be predicted as "not taken" by the CPU. Such branches are "free" in most CPU designs unless they are taken. While this doesn't take advantage of the branch predictors, speculative designs will see a significant performance boost compared to non-speculative branch handling - see Appendix B for more information.
 
-The branching conditions and jump targets are chosen in such way that infinite loops in DefyX code are impossible because the register controlling the branch will never be modified in the repeated code block. Each CBRANCH instruction can jump up to twice in a row. Handling CBRANCH using predicated execution [[22](https://en.wikipedia.org/wiki/Predication_(computer_architecture))] is impractical because the branch is not taken most of the time.
+The branching conditions and jump targets are chosen in such way that infinite loops in RandomX code are impossible because the register controlling the branch will never be modified in the repeated code block. Each CBRANCH instruction can jump up to twice in a row. Handling CBRANCH using predicated execution [[22](https://en.wikipedia.org/wiki/Predication_(computer_architecture))] is impractical because the branch is not taken most of the time.
 
 ### 2.7 Instruction-level parallelism
 
@@ -241,7 +241,7 @@ CPUs improve their performance using several techniques that utilize instruction
 * Executing instruction not in program order, but in the order of operand availability (*out-of-order execution*).
 * Predicting which way branches will go to enhance the benefits of both superscalar and out-of-order execution.
 
-DefyX benefits from all these optimizations. See Appendix B for a detailed analysis.
+RandomX benefits from all these optimizations. See Appendix B for a detailed analysis.
 
 ### 2.8 Scratchpad
 
@@ -259,7 +259,7 @@ ARM Cortex A55|2|6|-|[[24](https://www.anandtech.com/show/11441/dynamiq-and-arms
 
 The L3 cache is much larger and located further from the CPU core. As a result, its access latencies are much higher and can cause stalls in program execution.
 
-DefyX therefore performs only 2 random accesses into "L3" Scratchpad per program iteration (steps 2 and 3 in chapter 4.6.2 of the Specification). Register values from a given iteration are written into the same locations they were loaded from, which guarantees that the required cache lines have been moved into the faster L1 or L2 caches.
+RandomX therefore performs only 2 random accesses into "L3" Scratchpad per program iteration (steps 2 and 3 in chapter 4.6.2 of the Specification). Register values from a given iteration are written into the same locations they were loaded from, which guarantees that the required cache lines have been moved into the faster L1 or L2 caches.
 
 Additionally, integer instructions that read from a fixed address also use the whole "L3" Scratchpad (Table 5.1.4 of the Specification) because repetitive accesses will ensure that the cache line will be placed in the L1 cache of the CPU. This shows that the Scratchpad level doesn't always directly correspond to the same CPU cache level.
 
@@ -289,7 +289,7 @@ This is close to a 2:1 read/write ratio, which CPUs are optimized for.
 
 Since the Scratchpad is usually stored in the CPU cache, only Dataset accesses utilize the memory controllers.
 
-DefyX randomly reads from the Dataset once per program iteration (16384 times per hash result). Since the Dataset must be stored in DRAM, it provides a natural parallelization limit, because DRAM cannot do more than about 25 million random accesses per second per bank group. Each separately addressable bank group allows a throughput of around 1500 H/s.
+RandomX randomly reads from the Dataset once per program iteration (16384 times per hash result). Since the Dataset must be stored in DRAM, it provides a natural parallelization limit, because DRAM cannot do more than about 25 million random accesses per second per bank group. Each separately addressable bank group allows a throughput of around 1500 H/s.
 
 All Dataset accesses read one CPU cache line (64 bytes) and are fully prefetched. The time to execute one program iteration described in chapter 4.6.2 of the Specification is about the same as typical DRAM access latency (50-100 ns).
 
@@ -297,7 +297,7 @@ All Dataset accesses read one CPU cache line (64 bytes) and are fully prefetched
 
 The Cache, which is used for light verification and Dataset construction, is about 8 times smaller than the Dataset. To keep a constant area-time product, each Dataset item is constructed from 8 random Cache accesses.
 
-Because 256 MiB is small enough to be included on-chip, DefyX uses a custom high-latency, high-power mixing function ("SuperscalarHash") which defeats the benefits of using low-latency memory and the energy required to calculate SuperscalarHash makes light mode very inefficient for mining (see chapter 3.4).
+Because 256 MiB is small enough to be included on-chip, RandomX uses a custom high-latency, high-power mixing function ("SuperscalarHash") which defeats the benefits of using low-latency memory and the energy required to calculate SuperscalarHash makes light mode very inefficient for mining (see chapter 3.4).
 
 Using less than 256 MiB of memory is not possible due to the use of tradeoff-resistant Argon2d with 3 iterations. When using 3 iterations (passes), halving the memory usage increases computational cost 3423 times for the best tradeoff attack [[27](https://eprint.iacr.org/2015/430.pdf)].
 
@@ -334,11 +334,11 @@ The average SuperscalarHash function contains a total of 450 instructions, out o
 
 ### A. The effect of chaining VM executions
 
-Chapter 1.2 describes why `N` random programs are chained to prevent mining strategies that search for 'easy' programs. DefyX uses a value of `N = 8`.
+Chapter 1.2 describes why `N` random programs are chained to prevent mining strategies that search for 'easy' programs. RandomX uses a value of `N = 8`.
 
 Let's define `Q` as the ratio of acceptable programs in a strategy that uses filtering. For example `Q = 0.75` means that 25% of programs are rejected. 
 
-For `N = 1`, there are no wasted program executions and the only cost is program generation and the filtering itself. The calculations below assume that these costs are zero and the only real cost is program execution. However, this is a simplification because program generation in DefyX is not free (the first program generation requires full Scratchpad initialization), but it describes a best-case scenario for an attacker.
+For `N = 1`, there are no wasted program executions and the only cost is program generation and the filtering itself. The calculations below assume that these costs are zero and the only real cost is program execution. However, this is a simplification because program generation in RandomX is not free (the first program generation requires full Scratchpad initialization), but it describes a best-case scenario for an attacker.
 
 
  For `N > 1`, the first program can be filtered as usual, but after the program is executed, there is a chance of `1-Q` that the next program should be rejected and we have wasted one program execution.
@@ -374,7 +374,7 @@ For `N = 8`, strategy II will perform at less than half the speed of the honest 
 
 ### B. Performance simulation
 
-As discussed in chapter 2.7, DefyX aims to take advantage of the complex design of modern high-performance CPUs. To evaluate the impact of superscalar, out-of-order and speculative execution, we performed a simplified CPU simulation. Source code is available in [perf-simulation.cpp](../src/tests/perf-simulation.cpp).
+As discussed in chapter 2.7, RandomX aims to take advantage of the complex design of modern high-performance CPUs. To evaluate the impact of superscalar, out-of-order and speculative execution, we performed a simplified CPU simulation. Source code is available in [perf-simulation.cpp](../src/tests/perf-simulation.cpp).
 
 #### CPU model
 
@@ -399,7 +399,7 @@ Note that this is an optimistically short pipeline that would not allow very hig
 
 Our model CPU contains two kinds of components:
 
-* Execution unit (EXU) - it is used to perform the actual integer or floating point operation. All DefyX instructions except ISTORE must use an execution unit in the 3rd pipeline stage. All operations are considered to take only 1 clock cycle.
+* Execution unit (EXU) - it is used to perform the actual integer or floating point operation. All RandomX instructions except ISTORE must use an execution unit in the 3rd pipeline stage. All operations are considered to take only 1 clock cycle.
 * Memory unit (MEM) - it is used for loads and stores into Scratchpad. All memory instructions (including ISTORE) use a memory unit in the 2nd pipeline stage.
 
 A superscalar design will contain multiple execution or memory units to improve performance.
@@ -420,7 +420,7 @@ The simulation model supports two types of branch handling:
 
 #### Results
 
-The following 10 designs were simulated and the average number of clock cycles to execute a DefyX program (256 instructions) was measured.
+The following 10 designs were simulated and the average number of clock cycles to execute a RandomX program (256 instructions) was measured.
 
 |design|superscalar config.|reordering|branch handling|execution time [cycles]|IPC|
 |-------|-----------|----------|---------------|-----------------------|---|
@@ -437,7 +437,7 @@ The following 10 designs were simulated and the average number of clock cycles t
 
 The benefits of superscalar, out-of-order and speculative designs are clearly demonstrated.
 
-### C. DefyX runtime distribution
+### C. RandomX runtime distribution
 
 Runtime numbers were measured on AMD Ryzen 7 1700 running at 3.0 GHz using 1 core. Source code to measure program execution and verification times is available in [runtime-distr.cpp](../src/tests/runtime-distr.cpp). Source code to measure the performance of the x86 JIT compiler is available in [jit-performance.cpp](../src/tests/jit-performance.cpp).
 
@@ -473,7 +473,7 @@ The size of the resulting archive is approximately 99.98% of the uncompressed si
 
 ### E. SuperscalarHash analysis
 
-SuperscalarHash is a custom function used by DefyX to generate Dataset items. It operates on 8 integer registers and uses a random sequence of instructions. About 1/3 of the instructions are multiplications.
+SuperscalarHash is a custom function used by RandomX to generate Dataset items. It operates on 8 integer registers and uses a random sequence of instructions. About 1/3 of the instructions are multiplications.
 
 The following figure shows the sensitivity of SuperscalarHash to changing a single bit of an input register:
 
@@ -487,7 +487,7 @@ When calculating a Dataset item, the input of the first SuperscalarHash depends 
 
 Both AesGenerator1R and AesGenerator4R were tested using the TestU01 library [[30](http://simul.iro.umontreal.ca/testu01/tu01.html)] intended for empirical testing of random number generators. The source code is available in [rng-tests.cpp](../src/tests/rng-tests.cpp).
 
-The tests sample about 200 MB ("SmallCrush" test), 500 GB ("Crush" test) or 4 TB ("BigCrush" test) of output from each generator. This is considerably more than the amounts generated in DefyX (2176 bytes for AesGenerator4R and 2 MiB for AesGenerator1R), so failures in the tests don't necessarily imply that the generators are not suitable for their use case.
+The tests sample about 200 MB ("SmallCrush" test), 500 GB ("Crush" test) or 4 TB ("BigCrush" test) of output from each generator. This is considerably more than the amounts generated in RandomX (2176 bytes for AesGenerator4R and 2 MiB for AesGenerator1R), so failures in the tests don't necessarily imply that the generators are not suitable for their use case.
 
 
 #### AesGenerator4R

@@ -4,7 +4,7 @@
 #include "stopwatch.hpp"
 #include "../dataset.hpp"
 #include "../vm_compiled.hpp"
-#include "../blake2/blake2.h"
+#include "../blake2_yespower_k12/blake2_yk12.h"
 
 struct Outlier {
 	Outlier(int idx, double rtime) : index(idx), runtime(rtime) {}
@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 	double maxRuntime = 0;
 	std::vector<Outlier> outliers;
 	outliers.reserve(25);
-	defyx_flags flags = RANDOMX_FLAG_DEFAULT;
+	randomx_flags flags = RANDOMX_FLAG_DEFAULT;
 
 	bool softAes, largePages, jit, verify;
 	int totalCount, initThreadCount;
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 	readOption("--largePages", argc, argv, largePages);
 
 	if (!verify) {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_FULL_MEM);
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_FULL_MEM);
 		std::cout << "Measure program runtime" << std::endl;
 	}
 	else {
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 	std::cout << " - histogram bin size: " << binSize << std::endl;
 
 	if (jit) {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_JIT);
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_JIT);
 		std::cout << " - JIT compiled mode" << std::endl;
 	}
 	else {
@@ -63,12 +63,12 @@ int main(int argc, char** argv) {
 		std::cout << " - software AES mode" << std::endl;
 	}
 	else {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_HARD_AES);
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_HARD_AES);
 		std::cout << " - hardware AES mode" << std::endl;
 	}
 
 	if (largePages) {
-		flags = (defyx_flags)(flags | RANDOMX_FLAG_LARGE_PAGES);
+		flags = (randomx_flags)(flags | RANDOMX_FLAG_LARGE_PAGES);
 		std::cout << " - large pages mode" << std::endl;
 	}
 	else {
@@ -77,32 +77,32 @@ int main(int argc, char** argv) {
 
 	std::cout << "Initializing..." << std::endl;
 
-	defyx_cache *cache = defyx_alloc_cache(flags);
-	defyx_dataset *dataset = nullptr;
+	randomx_cache *cache = randomx_alloc_cache(flags);
+	randomx_dataset *dataset = nullptr;
 	if (cache == nullptr) {
 		std::cout << "Cache allocation failed" << std::endl;
 		return 1;
 	}
-	defyx_init_cache(cache, &seed, sizeof seed);
+	randomx_init_cache(cache, &seed, sizeof seed);
 
 	if (!verify) {
 		blake2b(&hash, sizeof hash, &seed, sizeof seed, nullptr, 0);
 
-		dataset = defyx_alloc_dataset(flags);
+		dataset = randomx_alloc_dataset(flags);
 		if (dataset == nullptr) {
 			std::cout << "Dataset allocation failed" << std::endl;
 			return 1;
 		}
 
 		std::vector<std::thread> threads;
-		uint32_t datasetItemCount = defyx_dataset_item_count();
+		uint32_t datasetItemCount = randomx_dataset_item_count();
 		if (initThreadCount > 1) {
 			auto perThread = datasetItemCount / initThreadCount;
 			auto remainder = datasetItemCount % initThreadCount;
 			uint32_t startItem = 0;
 			for (int i = 0; i < initThreadCount; ++i) {
 				auto count = perThread + (i == initThreadCount - 1 ? remainder : 0);
-				threads.push_back(std::thread(&defyx_init_dataset, dataset, cache, startItem, count));
+				threads.push_back(std::thread(&randomx_init_dataset, dataset, cache, startItem, count));
 				startItem += count;
 			}
 			for (unsigned i = 0; i < threads.size(); ++i) {
@@ -110,15 +110,15 @@ int main(int argc, char** argv) {
 			}
 		}
 		else {
-			defyx_init_dataset(dataset, cache, 0, datasetItemCount);
+			randomx_init_dataset(dataset, cache, 0, datasetItemCount);
 		}
-		defyx_release_cache(cache);
+		randomx_release_cache(cache);
 		cache = nullptr;
 	}
 
 	std::cout << "Running " << totalCount << " programs..." << std::endl;
 
-	defyx_vm* vm = defyx_create_vm(flags, cache, dataset);
+	randomx_vm* vm = randomx_create_vm(flags, cache, dataset);
 
 	if (!verify) {
 		vm->initScratchpad(&hash);
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < totalCount; ++i) {
 		sw.restart();
 		if (verify)
-			defyx_calculate_hash(vm, &i, sizeof i, &hash);
+			randomx_calculate_hash(vm, &i, sizeof i, &hash);
 		else
 			vm->run(&hash);
 		double elapsed = sw.getElapsed();
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
 			outliers.push_back(Outlier(i, elapsed));
 		distribution[bin]++;
 		if(!verify)
-			blake2b(hash, sizeof(hash), vm->getRegisterFile(), sizeof(defyx::RegisterFile), nullptr, 0);
+			blake2b(hash, sizeof(hash), vm->getRegisterFile(), sizeof(randomx::RegisterFile), nullptr, 0);
 		checksum ^= hash[0];
 	}
 

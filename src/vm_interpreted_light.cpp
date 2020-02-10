@@ -29,10 +29,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vm_interpreted_light.hpp"
 #include "dataset.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	template<class Allocator, bool softAes>
-	void InterpretedLightVm<Allocator, softAes>::setCache(defyx_cache* cache) {
+	void InterpretedLightVm<Allocator, softAes>::setCache(randomx_cache* cache) {
 		cachePtr = cache;
 		mem.memory = cache->memory;
 	}

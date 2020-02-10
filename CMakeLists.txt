@@ -28,7 +28,7 @@
 
 cmake_minimum_required(VERSION 2.8.7)
 
-set (defyx_sources
+set (randomx_sources
 src/aes_hash.cpp
 src/argon2_ref.c
 src/bytecode_machine.cpp
@@ -39,7 +39,7 @@ src/vm_interpreted.cpp
 src/allocator.cpp
 src/assembly_generator_x86.cpp
 src/instruction.cpp
-src/defyx.cpp
+src/randomx.cpp
 src/superscalar.cpp
 src/vm_compiled.cpp
 src/vm_interpreted_light.cpp
@@ -49,17 +49,12 @@ src/instructions_portable.cpp
 src/reciprocal.c
 src/virtual_machine.cpp
 src/vm_compiled_light.cpp
-src/blake2/blake2b.c
-src/blake2/sha256.c
-src/blake2/yescrypt-best.c
-src/blake2/KangarooTwelve.c
-src/blake2/KeccakP-1600-reference.c
-src/blake2/KeccakSpongeWidth1600.c
-src/blake2/yescrypt-common.c
-src/blake2/yescrypt-platform.c
-src/blake2/yescrypt-ref.c
-src/blake2/yescrypt-simd.c
-src/blake2/yescrypt-opt.c)
+src/blake2_yespower_k12/blake2b_yk12.c
+src/blake2_yespower_k12/sha256.c
+src/blake2_yespower_k12/yespower-opt.c
+src/blake2_yespower_k12/KangarooTwelve.c
+src/blake2_yespower_k12/KeccakP-1600-reference.c
+src/blake2_yespower_k12/KeccakSpongeWidth1600.c)
 
 if(NOT ARCH_ID)
   # allow cross compiling
@@ -102,7 +97,7 @@ endfunction()
 
 # x86-64
 if (ARCH_ID STREQUAL "x86_64" OR ARCH_ID STREQUAL "x86-64" OR ARCH_ID STREQUAL "amd64")
-  list(APPEND defyx_sources
+  list(APPEND randomx_sources
     src/jit_compiler_x86_static.S
     src/jit_compiler_x86.cpp)
   # cheat because cmake and ccache hate each other
@@ -126,6 +121,12 @@ endif()
 
 # ARMv8
 if (ARM_ID STREQUAL "aarch64" OR ARM_ID STREQUAL "arm64" OR ARM_ID STREQUAL "armv8-a")
+  list(APPEND randomx_sources
+    src/jit_compiler_a64_static.S
+    src/jit_compiler_a64.cpp)
+  # cheat because cmake and ccache hate each other
+  set_property(SOURCE src/jit_compiler_a64_static.S PROPERTY LANGUAGE C)
+
   if(ARCH STREQUAL "native")
     add_flag("-march=native")
   else()
@@ -134,39 +135,42 @@ if (ARM_ID STREQUAL "aarch64" OR ARM_ID STREQUAL "arm64" OR ARM_ID STREQUAL "arm
   endif()
 endif()
 
-set(RANDOMX_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/src" CACHE STRING "DefyX Include path")
+set(RANDOMX_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/src" CACHE STRING "RandomX Include path")
 
-add_library(defyx
-  ${defyx_sources})
-set_property(TARGET defyx PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET defyx PROPERTY CXX_STANDARD 11)
-set_property(TARGET defyx PROPERTY CXX_STANDARD_REQUIRED ON)
+add_library(randomx
+  ${randomx_sources})
+set_property(TARGET randomx PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET randomx PROPERTY CXX_STANDARD 11)
+set_property(TARGET randomx PROPERTY CXX_STANDARD_REQUIRED ON)
+install(TARGETS randomx
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib)
 
-add_executable(DefyX-tests
+add_executable(randomx-tests
   src/tests/tests.cpp)
-target_link_libraries(DefyX-tests
-  PRIVATE defyx)
-set_property(TARGET DefyX-tests PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET DefyX-tests PROPERTY CXX_STANDARD 11)
+target_link_libraries(randomx-tests
+  PRIVATE randomx)
+set_property(TARGET randomx-tests PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET randomx-tests PROPERTY CXX_STANDARD 11)
 
-add_executable(defyx-codegen
+add_executable(randomx-codegen
   src/tests/code-generator.cpp)
-target_link_libraries(defyx-codegen
-  PRIVATE defyx)
+target_link_libraries(randomx-codegen
+  PRIVATE randomx)
 
-set_property(TARGET defyx-codegen PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET defyx-codegen PROPERTY CXX_STANDARD 11)
+set_property(TARGET randomx-codegen PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET randomx-codegen PROPERTY CXX_STANDARD 11)
 
 if (NOT Threads_FOUND AND UNIX AND NOT APPLE)
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads)
 endif()
 
-add_executable(defyx-benchmark
+add_executable(randomx-benchmark
   src/tests/benchmark.cpp
   src/tests/affinity.cpp)
-target_link_libraries(defyx-benchmark
-  PRIVATE defyx
+target_link_libraries(randomx-benchmark
+  PRIVATE randomx
   PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 
 include(CheckCXXSourceCompiles)
@@ -179,8 +183,8 @@ int main() {
 }" HAVE_CXX_ATOMICS)
 
 if(NOT HAVE_CXX_ATOMICS)
-  target_link_libraries(defyx-benchmark
+  target_link_libraries(randomx-benchmark
     PRIVATE "atomic")
 endif()
-set_property(TARGET defyx-benchmark PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET defyx-benchmark PROPERTY CXX_STANDARD 11)
+set_property(TARGET randomx-benchmark PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET randomx-benchmark PROPERTY CXX_STANDARD 11)

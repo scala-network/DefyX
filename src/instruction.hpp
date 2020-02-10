@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <iostream>
 #include <type_traits>
-#include "blake2/endian.h"
+#include "blake2_yespower_k12/endian.h"
 
-namespace defyx {
+namespace randomx {
 
 	class Instruction;
 
@@ -144,6 +144,6 @@ namespace defyx {
 		void h_NOP(std::ostream&) const;
 	};
 
-	static_assert(sizeof(Instruction) == 8, "Invalid size of struct defyx::Instruction");
-	static_assert(std::is_standard_layout<Instruction>(), "defyx::Instruction must be a standard-layout struct");
+	static_assert(sizeof(Instruction) == 8, "Invalid size of struct randomx::Instruction");
+	static_assert(std::is_standard_layout<Instruction>(), "randomx::Instruction must be a standard-layout struct");
 }

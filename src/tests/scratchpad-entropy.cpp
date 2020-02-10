@@ -1,9 +1,9 @@
 #include <string>
 #include <iostream>
 #include "utility.hpp"
-#include "../defyx.h"
+#include "../randomx.h"
 #include "../virtual_machine.hpp"
-#include "../blake2/endian.h"
+#include "../blake2_yespower_k12/endian.h"
 
 /*
 	Writes final scratchpads to disk as files with .spad extension, each file is 2048 KiB.
@@ -30,21 +30,21 @@ int main(int argc, char** argv) {
 
 	store32(&seed, seedValue);
 
-	defyx_cache *cache = defyx_alloc_cache(RANDOMX_FLAG_DEFAULT);
-	defyx_init_cache(cache, &seed, sizeof seed);
-	defyx_vm *vm = defyx_create_vm(RANDOMX_FLAG_DEFAULT, cache, NULL);
+	randomx_cache *cache = randomx_alloc_cache(RANDOMX_FLAG_DEFAULT);
+	randomx_init_cache(cache, &seed, sizeof seed);
+	randomx_vm *vm = randomx_create_vm(RANDOMX_FLAG_DEFAULT, cache, NULL);
 
 	for (int i = 0; i < count; ++i) {
 		store32(&input, i);
-		defyx_calculate_hash(vm, &input, sizeof input, hash);
+		randomx_calculate_hash(vm, &input, sizeof input, hash);
 		std::string filename("test-");
 		filename += std::to_string(i);
 		filename += ".spad";
-		dump((const char*)vm->getScratchpad(), defyx::ScratchpadSize, filename.c_str());
+		dump((const char*)vm->getScratchpad(), randomx::ScratchpadSize, filename.c_str());
 	}
 
-	defyx_destroy_vm(vm);
-	defyx_release_cache(cache);
+	randomx_destroy_vm(vm);
+	randomx_release_cache(cache);
 
 	return 0;
 }

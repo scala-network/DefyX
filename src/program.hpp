@@ -32,9 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ostream>
 #include "common.hpp"
 #include "instruction.hpp"
-#include "blake2/endian.h"
+#include "blake2_yespower_k12/endian.h"
 
-namespace defyx {
+namespace randomx {
 
 	struct ProgramConfiguration {
 		uint64_t eMask[2];
@@ -67,5 +67,5 @@ namespace defyx {
 		Instruction programBuffer[RANDOMX_PROGRAM_SIZE];
 	};
 
-	static_assert(sizeof(Program) % 64 == 0, "Invalid size of class defyx::Program");
+	static_assert(sizeof(Program) % 64 == 0, "Invalid size of class randomx::Program");
 }

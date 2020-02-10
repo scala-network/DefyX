@@ -7,8 +7,8 @@
   ./configure --prefix=`pwd`/../TestU01
   make -j8
   make install
-  cd ~/DefyX
-  g++ -O3 src/tests/rng-tests.cpp -lm -I ~/TestU01/include -L ~/TestU01/lib -L bin/ -l:libtestu01.a -l:libmylib.a -l:libprobdist.a -ldefyx -o bin/rng-tests -DRANDOMX_GEN=4R -DRANDOMX_TESTU01=Crush
+  cd ~/RandomX
+  g++ -O3 src/tests/rng-tests.cpp -lm -I ~/TestU01/include -L ~/TestU01/lib -L bin/ -l:libtestu01.a -l:libmylib.a -l:libprobdist.a -lrandomx -o bin/rng-tests -DRANDOMX_GEN=4R -DRANDOMX_TESTU01=Crush
   bin/rng-tests 0
 */
 
@@ -18,7 +18,7 @@ extern "C" {
 }
 
 #include "../aes_hash.hpp"
-#include "../blake2/blake2.h"
+#include "../blake2_yespower_k12/blake2_yk12.h"
 #include "utility.hpp"
 #include <cstdint>
 

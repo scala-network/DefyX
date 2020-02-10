@@ -1,5 +1,5 @@
 /*-
- * Copyright 2013-2015 Alexander Peslyak
+ * Copyright 2013-2018 Alexander Peslyak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,10 +22,6 @@
 #include <sys/mman.h>
 #endif
 
-#include <stdint.h>
-
-#include "yescrypt.h"
-
 #define HUGEPAGE_THRESHOLD		(12 * 1024 * 1024)
 
 #ifdef __x86_64__
@@ -34,11 +30,10 @@
 #undef HUGEPAGE_SIZE
 #endif
 
-static void *
-alloc_region(yescrypt_region_t * region, size_t size)
+static void *alloc_region(yespower_region_t *region, size_t size)
 {
 	size_t base_size = size;
-	uint8_t * base, * aligned;
+	uint8_t *base, *aligned;
 #ifdef MAP_ANON
 	int flags =
 #ifdef MAP_NOCORE
@@ -60,8 +55,7 @@ alloc_region(yescrypt_region_t * region, size_t size)
 	base = mmap(NULL, new_size, PROT_READ | PROT_WRITE, flags, -1, 0);
 	if (base != MAP_FAILED) {
 		base_size = new_size;
-	} else
-	if (flags & MAP_HUGETLB) {
+	} else if (flags & MAP_HUGETLB) {
 		flags &= ~MAP_HUGETLB;
 		base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);
 	}
@@ -79,7 +73,7 @@ alloc_region(yescrypt_region_t * region, size_t size)
 #else
 	base = aligned = NULL;
 	if (size + 63 < size) {
-		//errno = ENOMEM;
+		errno = ENOMEM;
 	} else if ((base = malloc(size + 63)) != NULL) {
 		aligned = base + 63;
 		aligned -= (uintptr_t)aligned & 63;
@@ -92,15 +86,13 @@ alloc_region(yescrypt_region_t * region, size_t size)
 	return aligned;
 }
 
-static inline void
-init_region(yescrypt_region_t * region)
+static inline void init_region(yespower_region_t *region)
 {
 	region->base = region->aligned = NULL;
 	region->base_size = region->aligned_size = 0;
 }
 
-static int
-free_region(yescrypt_region_t * region)
+static int free_region(yespower_region_t *region)
 {
 	if (region->base) {
 #ifdef MAP_ANON
@@ -112,80 +104,4 @@ free_region(yescrypt_region_t * region)
 	}
 	init_region(region);
 	return 0;
-}
-
-int
-yescrypt_init_shared(yescrypt_shared_t * shared,
-    const uint8_t * param, size_t paramlen,
-    uint64_t N, uint32_t r, uint32_t p,
-    yescrypt_init_shared_flags_t flags,
-    uint8_t * buf, size_t buflen)
-{
-	yescrypt_shared_t half1, half2;
-	uint8_t salt[32];
-
-	if (flags & YESCRYPT_SHARED_PREALLOCATED) {
-		if (!shared->aligned || !shared->aligned_size)
-			return -1;
-	} else {
-		init_region(shared);
-	}
-	if (!param && !paramlen && !N && !r && !p && !buf && !buflen)
-		return 0;
-
-	if (yescrypt_kdf(NULL, shared,
-	    param, paramlen, NULL, 0, N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_1,
-	    salt, sizeof(salt)))
-		goto out;
-
-	half1 = half2 = *shared;
-	half1.aligned_size /= 2;
-	half2.aligned += half1.aligned_size;
-	half2.aligned_size = half1.aligned_size;
-	N /= 2;
-
-	if (p > 1 && yescrypt_kdf(&half1, &half2,
-	    param, paramlen, salt, sizeof(salt), N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_2,
-	    salt, sizeof(salt)))
-		goto out;
-
-	if (yescrypt_kdf(&half2, &half1,
-	    param, paramlen, salt, sizeof(salt), N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_1,
-	    salt, sizeof(salt)))
-		goto out;
-
-	if (yescrypt_kdf(&half1, &half2,
-	    param, paramlen, salt, sizeof(salt), N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_1,
-	    buf, buflen))
-		goto out;
-
-	return 0;
-
-out:
-	if (!(flags & YESCRYPT_SHARED_PREALLOCATED))
-		free_region(shared);
-	return -1;
-}
-
-int
-yescrypt_free_shared(yescrypt_shared_t * shared)
-{
-	return free_region(shared);
-}
-
-int
-yescrypt_init_local(yescrypt_local_t * local)
-{
-	init_region(local);
-	return 0;
-}
-
-int
-yescrypt_free_local(yescrypt_local_t * local)
-{
-	return free_region(local);
 }

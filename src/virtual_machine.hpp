@@ -33,46 +33,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "program.hpp"
 
 /* Global namespace for C binding */
-class defyx_vm {
+class randomx_vm {
 public:
-	virtual ~defyx_vm() = 0;
+	virtual ~randomx_vm() = 0;
 	virtual void allocate() = 0;
 	virtual void getFinalResult(void* out, size_t outSize) = 0;
-	virtual void setDataset(defyx_dataset* dataset) { }
-	virtual void setCache(defyx_cache* cache) { }
+	virtual void setDataset(randomx_dataset* dataset) { }
+	virtual void setCache(randomx_cache* cache) { }
 	virtual void initScratchpad(void* seed) = 0;
 	virtual void run(void* seed) = 0;
 	void resetRoundingMode();
-	defyx::RegisterFile *getRegisterFile() {
+	randomx::RegisterFile *getRegisterFile() {
 		return &reg;
 	}
 	const void* getScratchpad() {
 		return scratchpad;
 	}
-	const defyx::Program& getProgram()
+	const randomx::Program& getProgram()
 	{
 		return program;
 	}
 protected:
 	void initialize();
-	alignas(64) defyx::Program program;
-	alignas(64) defyx::RegisterFile reg;
-	alignas(16) defyx::ProgramConfiguration config;
-	defyx::MemoryRegisters mem;
-	uint8_t* scratchpad;
+	alignas(64) randomx::Program program;
+	alignas(64) randomx::RegisterFile reg;
+	alignas(16) randomx::ProgramConfiguration config;
+	randomx::MemoryRegisters mem;
+	uint8_t* scratchpad = nullptr;
 	union {
-		defyx_cache* cachePtr = nullptr;
-		defyx_dataset* datasetPtr;
+		randomx_cache* cachePtr = nullptr;
+		randomx_dataset* datasetPtr;
 	};
 	uint64_t datasetOffset;
 public:
 	std::string cacheKey;
 };
 
-namespace defyx {
+namespace randomx {
 
 	template<class Allocator, bool softAes>
-	class VmBase : public defyx_vm {
+	class VmBase : public randomx_vm {
 	public:
 		~VmBase() override;
 		void allocate() override;

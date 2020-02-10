@@ -32,19 +32,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "virtual_machine.hpp"
 #include "common.hpp"
 #include "aes_hash.hpp"
-#include "blake2/blake2.h"
+#include "blake2_yespower_k12/blake2_yk12.h"
 #include "intrin_portable.h"
 #include "allocator.hpp"
 
-defyx_vm::~defyx_vm() {
+randomx_vm::~randomx_vm() {
 
 }
 
-void defyx_vm::resetRoundingMode() {
+void randomx_vm::resetRoundingMode() {
 	rx_reset_float_state();
 }
 
-namespace defyx {
+namespace randomx {
 
 	static inline uint64_t getSmallPositiveFloatBits(uint64_t entropy) {
 		auto exponent = entropy >> 59; //0..31
@@ -69,16 +69,16 @@ namespace defyx {
 
 }
 
-void defyx_vm::initialize() {
-	store64(&reg.a[0].lo, defyx::getSmallPositiveFloatBits(program.getEntropy(0)));
-	store64(&reg.a[0].hi, defyx::getSmallPositiveFloatBits(program.getEntropy(1)));
-	store64(&reg.a[1].lo, defyx::getSmallPositiveFloatBits(program.getEntropy(2)));
-	store64(&reg.a[1].hi, defyx::getSmallPositiveFloatBits(program.getEntropy(3)));
-	store64(&reg.a[2].lo, defyx::getSmallPositiveFloatBits(program.getEntropy(4)));
-	store64(&reg.a[2].hi, defyx::getSmallPositiveFloatBits(program.getEntropy(5)));
-	store64(&reg.a[3].lo, defyx::getSmallPositiveFloatBits(program.getEntropy(6)));
-	store64(&reg.a[3].hi, defyx::getSmallPositiveFloatBits(program.getEntropy(7)));
-	mem.ma = program.getEntropy(8) & defyx::CacheLineAlignMask;
+void randomx_vm::initialize() {
+	store64(&reg.a[0].lo, randomx::getSmallPositiveFloatBits(program.getEntropy(0)));
+	store64(&reg.a[0].hi, randomx::getSmallPositiveFloatBits(program.getEntropy(1)));
+	store64(&reg.a[1].lo, randomx::getSmallPositiveFloatBits(program.getEntropy(2)));
+	store64(&reg.a[1].hi, randomx::getSmallPositiveFloatBits(program.getEntropy(3)));
+	store64(&reg.a[2].lo, randomx::getSmallPositiveFloatBits(program.getEntropy(4)));
+	store64(&reg.a[2].hi, randomx::getSmallPositiveFloatBits(program.getEntropy(5)));
+	store64(&reg.a[3].lo, randomx::getSmallPositiveFloatBits(program.getEntropy(6)));
+	store64(&reg.a[3].hi, randomx::getSmallPositiveFloatBits(program.getEntropy(7)));
+	mem.ma = program.getEntropy(8) & randomx::CacheLineAlignMask;
 	mem.mx = program.getEntropy(10);
 	auto addressRegisters = program.getEntropy(12);
 	config.readReg0 = 0 + (addressRegisters & 1);
@@ -88,12 +88,12 @@ void defyx_vm::initialize() {
 	config.readReg2 = 4 + (addressRegisters & 1);
 	addressRegisters >>= 1;
 	config.readReg3 = 6 + (addressRegisters & 1);
-	datasetOffset = (program.getEntropy(13) % (defyx::DatasetExtraItems + 1)) * defyx::CacheLineSize;
-	store64(&config.eMask[0], defyx::getFloatMask(program.getEntropy(14)));
-	store64(&config.eMask[1], defyx::getFloatMask(program.getEntropy(15)));
+	datasetOffset = (program.getEntropy(13) % (randomx::DatasetExtraItems + 1)) * randomx::CacheLineSize;
+	store64(&config.eMask[0], randomx::getFloatMask(program.getEntropy(14)));
+	store64(&config.eMask[1], randomx::getFloatMask(program.getEntropy(15)));
 }
 
-namespace defyx {
+namespace randomx {
 
 	alignas(16) volatile static rx_vec_i128 aesDummy;
 

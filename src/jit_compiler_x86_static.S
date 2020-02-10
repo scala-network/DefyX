@@ -37,23 +37,26 @@
 #define WINABI
 #endif
 
-.global DECL(defyx_program_prologue)
-.global DECL(defyx_program_loop_begin)
-.global DECL(defyx_program_loop_load)
-.global DECL(defyx_program_start)
-.global DECL(defyx_program_read_dataset)
-.global DECL(defyx_program_read_dataset_sshash_init)
-.global DECL(defyx_program_read_dataset_sshash_fin)
-.global DECL(defyx_program_loop_store)
-.global DECL(defyx_program_loop_end)
-.global DECL(defyx_dataset_init)
-.global DECL(defyx_program_epilogue)
-.global DECL(defyx_sshash_load)
-.global DECL(defyx_sshash_prefetch)
-.global DECL(defyx_sshash_end)
-.global DECL(defyx_sshash_init)
-.global DECL(defyx_program_end)
-.global DECL(defyx_reciprocal_fast)
+.global DECL(randomx_prefetch_scratchpad)
+.global DECL(randomx_prefetch_scratchpad_end)
+.global DECL(randomx_program_prologue)
+.global DECL(randomx_program_prologue_first_load)
+.global DECL(randomx_program_loop_begin)
+.global DECL(randomx_program_loop_load)
+.global DECL(randomx_program_start)
+.global DECL(randomx_program_read_dataset)
+.global DECL(randomx_program_read_dataset_sshash_init)
+.global DECL(randomx_program_read_dataset_sshash_fin)
+.global DECL(randomx_program_loop_store)
+.global DECL(randomx_program_loop_end)
+.global DECL(randomx_dataset_init)
+.global DECL(randomx_program_epilogue)
+.global DECL(randomx_sshash_load)
+.global DECL(randomx_sshash_prefetch)
+.global DECL(randomx_sshash_end)
+.global DECL(randomx_sshash_init)
+.global DECL(randomx_program_end)
+.global DECL(randomx_reciprocal_fast)
 
 #include "configuration.h"
 
@@ -65,8 +68,18 @@
 
 #define db .byte
 
+DECL(randomx_prefetch_scratchpad):
+	mov rdx, rax
+	and eax, RANDOMX_SCRATCHPAD_MASK
+	prefetcht0 [rsi+rax]
+	ror rdx, 32
+	and edx, RANDOMX_SCRATCHPAD_MASK
+	prefetcht0 [rsi+rdx]
+
+DECL(randomx_prefetch_scratchpad_end):
+
 .balign 64
-DECL(defyx_program_prologue):
+DECL(randomx_program_prologue):
 #if defined(WINABI)
 	#include "asm/program_prologue_win64.inc"
 #else
@@ -75,38 +88,46 @@ DECL(defyx_program_prologue):
 	movapd xmm13, xmmword ptr [mantissaMask+rip]
 	movapd xmm14, xmmword ptr [exp240+rip]
 	movapd xmm15, xmmword ptr [scaleMask+rip]
-	jmp DECL(defyx_program_loop_begin)
+
+DECL(randomx_program_prologue_first_load):
+	xor rax, r8
+	xor rax, r8
+	mov rdx, rax
+	and eax, RANDOMX_SCRATCHPAD_MASK
+	ror rdx, 32
+	and edx, RANDOMX_SCRATCHPAD_MASK
+	jmp DECL(randomx_program_loop_begin)
 
 .balign 64
 	#include "asm/program_xmm_constants.inc"
 
 .balign 64
-DECL(defyx_program_loop_begin):
+DECL(randomx_program_loop_begin):
 	nop
 
-DECL(defyx_program_loop_load):
+DECL(randomx_program_loop_load):
 	#include "asm/program_loop_load.inc"
 
-DECL(defyx_program_start):
+DECL(randomx_program_start):
 	nop
 
-DECL(defyx_program_read_dataset):
+DECL(randomx_program_read_dataset):
 	#include "asm/program_read_dataset.inc"
 
-DECL(defyx_program_read_dataset_sshash_init):
+DECL(randomx_program_read_dataset_sshash_init):
 	#include "asm/program_read_dataset_sshash_init.inc"
 
-DECL(defyx_program_read_dataset_sshash_fin):
+DECL(randomx_program_read_dataset_sshash_fin):
 	#include "asm/program_read_dataset_sshash_fin.inc"
 
-DECL(defyx_program_loop_store):
+DECL(randomx_program_loop_store):
 	#include "asm/program_loop_store.inc"
 
-DECL(defyx_program_loop_end):
+DECL(randomx_program_loop_end):
 	nop
 
 .balign 64
-DECL(defyx_dataset_init):
+DECL(randomx_dataset_init):
 	push rbx
 	push rbp
 	push r12
@@ -130,7 +151,7 @@ init_block_loop:
 	prefetchw byte ptr [rsi]
 	mov rbx, rbp
 	.byte 232 ;# 0xE8 = call
-	.int SUPERSCALAR_OFFSET - (call_offset - DECL(defyx_dataset_init))
+	.int SUPERSCALAR_OFFSET - (call_offset - DECL(randomx_dataset_init))
 call_offset:
 	mov qword ptr [rsi+0], r8
 	mov qword ptr [rsi+8], r9
@@ -158,7 +179,7 @@ call_offset:
 	ret
 
 .balign 64
-DECL(defyx_program_epilogue):
+DECL(randomx_program_epilogue):
 	#include "asm/program_epilogue_store.inc"
 #if defined(WINABI)
 	#include "asm/program_epilogue_win64.inc"
@@ -167,17 +188,17 @@ DECL(defyx_program_epilogue):
 #endif
 
 .balign 64
-DECL(defyx_sshash_load):
+DECL(randomx_sshash_load):
 	#include "asm/program_sshash_load.inc"
 
-DECL(defyx_sshash_prefetch):
+DECL(randomx_sshash_prefetch):
 	#include "asm/program_sshash_prefetch.inc"
 
-DECL(defyx_sshash_end):
+DECL(randomx_sshash_end):
 	nop
 
 .balign 64
-DECL(defyx_sshash_init):
+DECL(randomx_sshash_init):
 	lea r8, [rbx+1]
 	#include "asm/program_sshash_prefetch.inc"
 	imul r8, qword ptr [r0_mul+rip]
@@ -195,17 +216,17 @@ DECL(defyx_sshash_init):
 	xor r14, r8
 	mov r15, qword ptr [r7_add+rip]
 	xor r15, r8
-	jmp DECL(defyx_program_end)
+	jmp DECL(randomx_program_end)
 
 .balign 64
 	#include "asm/program_sshash_constants.inc"
 
 .balign 64
-DECL(defyx_program_end):
+DECL(randomx_program_end):
 	nop
 
-DECL(defyx_reciprocal_fast):
+DECL(randomx_reciprocal_fast):
 #if !defined(WINABI)
 	mov rcx, rdi
 #endif
-	#include "asm/defyx_reciprocal.inc"
+	#include "asm/randomx_reciprocal.inc"

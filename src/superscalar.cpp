@@ -28,7 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "configuration.h"
 #include "program.hpp"
-#include "blake2/endian.h"
+#include "blake2_yespower_k12/endian.h"
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reciprocal.h"
 #include "common.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	static bool isMultiplication(SuperscalarInstructionType type) {
 		return type == SuperscalarInstructionType::IMUL_R || type == SuperscalarInstructionType::IMULH_R || type == SuperscalarInstructionType::ISMULH_R || type == SuperscalarInstructionType::IMUL_RCP;
@@ -241,7 +241,7 @@ namespace defyx {
 	const SuperscalarInstructionInfo SuperscalarInstructionInfo::NOP = SuperscalarInstructionInfo("NOP");
 
 	//these are some of the options how to split a 16-byte window into 3 or 4 x86 instructions.
-	//DefyX uses instructions with a native size of 3 (sub, xor, mul, mov), 4 (lea, mul), 7 (xor, add immediate) or 10 bytes (mov 64-bit immediate).
+	//RandomX uses instructions with a native size of 3 (sub, xor, mul, mov), 4 (lea, mul), 7 (xor, add immediate) or 10 bytes (mov 64-bit immediate).
 	//Slots with sizes of 8 or 9 bytes need to be padded with a nop instruction.
 	const int buffer0[] = { 4, 8, 4 };
 	const int buffer1[] = { 7, 3, 3, 3 };
@@ -269,7 +269,7 @@ namespace defyx {
 			return name_;
 		}
 		const DecoderBuffer* fetchNext(SuperscalarInstructionType instrType, int cycle, int mulCount, Blake2Generator& gen) const {
-			//If the current DefyX instruction is "IMULH", the next fetch configuration must be 3-3-10
+			//If the current RandomX instruction is "IMULH", the next fetch configuration must be 3-3-10
 			//because the full 128-bit multiplication instruction is 3 bytes long and decodes to 2 uOPs on Intel CPUs.
 			//Intel CPUs can decode at most 4 uOPs per cycle, so this requires a 2-1-1 configuration for a total of 3 macro ops.
 			if (instrType == SuperscalarInstructionType::IMULH_R || instrType == SuperscalarInstructionType::ISMULH_R)
@@ -280,7 +280,7 @@ namespace defyx {
 			if (mulCount < cycle + 1)
 				return &decodeBuffer4444;
 
-			//If the current DefyX instruction is "IMUL_RCP", the next buffer must begin with a 4-byte slot for multiplication.
+			//If the current RandomX instruction is "IMUL_RCP", the next buffer must begin with a 4-byte slot for multiplication.
 			if(instrType == SuperscalarInstructionType::IMUL_RCP)
 				return (gen.getByte() & 1) ? &decodeBuffer484 : &decodeBuffer493;
 
@@ -356,7 +356,7 @@ namespace defyx {
 	//"SuperscalarInstruction" consists of one or more macro-ops
 	class SuperscalarInstruction {
 	public:
-		void toInstr(Instruction& instr) { //translate to a DefyX instruction format
+		void toInstr(Instruction& instr) { //translate to a RandomX instruction format
 			instr.opcode = (int)getType();
 			instr.dst = dst_;
 			instr.src = src_ >= 0 ? src_ : dst_;
@@ -687,7 +687,7 @@ namespace defyx {
 			while (bufferIndex < decodeBuffer->getSize()) {
 				int topCycle = cycle;
 
-				//if we have issued all macro-ops for the current DefyX instruction, create a new instruction
+				//if we have issued all macro-ops for the current RandomX instruction, create a new instruction
 				if (macroOpIndex >= currentInstruction.getInfo().getSize()) {
 					if (portsSaturated || programSize >= SuperscalarMaxSize)
 						break;
@@ -887,7 +887,7 @@ namespace defyx {
 				if (reciprocals != nullptr)
 					r[instr.dst] *= (*reciprocals)[instr.getImm32()];
 				else
-					r[instr.dst] *= defyx_reciprocal(instr.getImm32());
+					r[instr.dst] *= randomx_reciprocal(instr.getImm32());
 				break;
 			default:
 				UNREACHABLE;

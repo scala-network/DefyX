@@ -30,7 +30,7 @@
     <ClCompile Include="..\src\blake2\blake2b.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\defyx.cpp">
+    <ClCompile Include="..\src\randomx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\allocator.cpp">
@@ -101,7 +101,7 @@
     <ClInclude Include="..\src\reciprocal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\defyx.h">
+    <ClInclude Include="..\src\randomx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\allocator.hpp">
@@ -179,7 +179,7 @@
     <ClInclude Include="..\src\blake2\endian.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\blake2\blake2.h">
+    <ClInclude Include="..\src\blake2\blake2_yk12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\bytecode_machine.hpp">

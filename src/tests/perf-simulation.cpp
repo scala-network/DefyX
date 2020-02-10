@@ -30,13 +30,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../common.hpp"
 #include "../aes_hash.hpp"
 #include "../program.hpp"
-#include "../blake2/blake2.h"
+#include "../blake2_yespower_k12/blake2_yk12.h"
 #include <algorithm>
 #include <iomanip>
 
-int analyze(defyx::Program& p);
-int executeInOrder(defyx::Program& p, defyx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline);
-int executeOutOfOrder(defyx::Program& p, defyx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline);
+int analyze(randomx::Program& p);
+int executeInOrder(randomx::Program& p, randomx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline);
+int executeOutOfOrder(randomx::Program& p, randomx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline);
 
 constexpr uint32_t DST_NOP = 0;
 constexpr uint32_t DST_INT = 1;
@@ -59,17 +59,17 @@ constexpr uint32_t OP_FLOAT = 64;
 constexpr uint32_t BRANCH_TARGET = 128;
 
 //template<bool softAes>
-void generate(defyx::Program& p, uint32_t nonce) {
+void generate(randomx::Program& p, uint32_t nonce) {
 	alignas(16) uint64_t hash[8];
 	blake2b(hash, sizeof(hash), &nonce, sizeof(nonce), nullptr, 0);
 	fillAes1Rx4<false>((void*)hash, sizeof(p), &p);
 }
 
-bool has(defyx::Instruction& instr, uint32_t mask, uint32_t prop) {
+bool has(randomx::Instruction& instr, uint32_t mask, uint32_t prop) {
 	return (instr.opcode & mask) == prop;
 }
 
-bool has(defyx::Instruction& instr, uint32_t prop) {
+bool has(randomx::Instruction& instr, uint32_t prop) {
 	return (instr.opcode & prop) != 0;
 }
 
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
 	readIntOption("--executionPorts", argc, argv, executionPorts, 4);
 	readIntOption("--memoryPorts", argc, argv, memoryPorts, 2);
 	readIntOption("--pipeline", argc, argv, pipeline, 3);
-	defyx::Program p, original;
+	randomx::Program p, original;
 	double totalCycles = 0.0;
 	double jumpCount = 0;
 	for (int i = 0; i < nonces; ++i) {
@@ -105,12 +105,12 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-int executeInOrder(defyx::Program& p, defyx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline) {
+int executeInOrder(randomx::Program& p, randomx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline) {
 	int cycle = pipeline - 1;
 	int index = 0;
 	int branchCount = 0;
-	int int_reg_ready[defyx::RegistersCount] = { 0 };
-	int flt_reg_ready[defyx::RegistersCount] = { 0 };
+	int int_reg_ready[randomx::RegistersCount] = { 0 };
+	int flt_reg_ready[randomx::RegistersCount] = { 0 };
 	//each workgroup takes 1 or 2 cycles (2 cycles if any instruction has a memory operand)
 	while (index < RANDOMX_PROGRAM_SIZE) {
 		int memoryAccesses = 0;
@@ -120,8 +120,8 @@ int executeInOrder(defyx::Program& p, defyx::Program& original, bool print, int 
 		for (; workers < executionPorts && memoryAccesses < memoryPorts && index < RANDOMX_PROGRAM_SIZE; ++workers) {
 			auto& instr = p(index);
 			auto& origi = original(index);
-			origi.dst %= defyx::RegistersCount;
-			origi.src %= defyx::RegistersCount;
+			origi.dst %= randomx::RegistersCount;
+			origi.src %= randomx::RegistersCount;
 
 			//check dependencies
 			if (has(instr, MASK_SRC, SRC_INT) && int_reg_ready[instr.src] > cycle)
@@ -191,12 +191,12 @@ int executeInOrder(defyx::Program& p, defyx::Program& original, bool print, int 
 	return cycle;
 }
 
-int executeOutOfOrder(defyx::Program& p, defyx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline) {
+int executeOutOfOrder(randomx::Program& p, randomx::Program& original, bool print, int executionPorts, int memoryPorts, bool speculate, int pipeline) {
 	int index = 0;
 	int busyExecutionPorts[2 * RANDOMX_PROGRAM_SIZE] = { 0 };
 	int busyMemoryPorts[2 * RANDOMX_PROGRAM_SIZE] = { 0 };
-	int int_reg_ready[defyx::RegistersCount] = { 0 };
-	int flt_reg_ready[defyx::RegistersCount] = { 0 };
+	int int_reg_ready[randomx::RegistersCount] = { 0 };
+	int flt_reg_ready[randomx::RegistersCount] = { 0 };
 	int fprcReady = 0;
 	int lastBranch = 0;
 	int branchCount = 0;
@@ -292,8 +292,8 @@ int executeOutOfOrder(defyx::Program& p, defyx::Program& original, bool print, i
 
 		//print
 		auto& origi = original(index);
-		origi.dst %= defyx::RegistersCount;
-		origi.src %= defyx::RegistersCount;
+		origi.dst %= randomx::RegistersCount;
+		origi.src %= randomx::RegistersCount;
 		if (print) {
 			std::cout << std::setw(2) << retireCycle << ": " << origi;
 			if (has(instr, MASK_EXT, OP_BRANCH)) {
@@ -302,10 +302,10 @@ int executeOutOfOrder(defyx::Program& p, defyx::Program& original, bool print, i
 		}
 	}
 	int cycle = 0;
-	for (int i = 0; i < defyx::RegistersCount; ++i) {
+	for (int i = 0; i < randomx::RegistersCount; ++i) {
 		cycle = std::max(cycle, int_reg_ready[i]);
 	}
-	for (int i = 0; i < defyx::RegistersCount; ++i) {
+	for (int i = 0; i < randomx::RegistersCount; ++i) {
 		cycle = std::max(cycle, flt_reg_ready[i]);
 	}
 	if (speculate) {
@@ -329,12 +329,12 @@ struct RegisterUsage {
 	int32_t count;
 };
 
-inline int getConditionRegister(RegisterUsage(&registerUsage)[defyx::RegistersCount]) {
+inline int getConditionRegister(RegisterUsage(&registerUsage)[randomx::RegistersCount]) {
 	int min = INT_MAX;
 	int minCount = 0;
 	int minIndex;
 			//prefer registers that have been used as a condition register fewer times
-		for (unsigned i = 0; i < defyx::RegistersCount; ++i) {
+		for (unsigned i = 0; i < randomx::RegistersCount; ++i) {
 		if (registerUsage[i].lastUsed < min || (registerUsage[i].lastUsed == min && registerUsage[i].count < minCount)) {
 			min = registerUsage[i].lastUsed;
 			minCount = registerUsage[i].count;
@@ -344,10 +344,10 @@ inline int getConditionRegister(RegisterUsage(&registerUsage)[defyx::RegistersCo
 	return minIndex;
 }
 
-int analyze(defyx::Program& p) {
+int analyze(randomx::Program& p) {
 	int jumpCount = 0;
-	RegisterUsage registerUsage[defyx::RegistersCount];
-	for (unsigned i = 0; i < defyx::RegistersCount; ++i) {
+	RegisterUsage registerUsage[randomx::RegistersCount];
+	for (unsigned i = 0; i < randomx::RegistersCount; ++i) {
 		registerUsage[i].lastUsed = -1;
 		registerUsage[i].count = 0;
 	}
@@ -356,188 +356,188 @@ int analyze(defyx::Program& p) {
 		int opcode = instr.opcode;
 		instr.opcode = 0;
 
-		if (opcode < defyx::ceil_IADD_RS) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IADD_RS) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_INT;
 			instr.opcode |= DST_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IADD_M) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IADD_M) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= DST_INT;
 			if (instr.src != instr.dst) {
-				instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+				instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			}
 			else {
-				instr.imm32 &= defyx::ScratchpadL3Mask;
+				instr.imm32 &= randomx::ScratchpadL3Mask;
 			}
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_ISUB_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_ISUB_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			instr.opcode |= SRC_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_ISUB_M) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_ISUB_M) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= DST_INT;
 			if (instr.src != instr.dst) {
-				instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+				instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			}
 			else {
-				instr.imm32 &= defyx::ScratchpadL3Mask;
+				instr.imm32 &= randomx::ScratchpadL3Mask;
 			}
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IMUL_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IMUL_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			instr.opcode |= SRC_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IMUL_M) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IMUL_M) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= DST_INT;
 			if (instr.src != instr.dst) {
-				instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+				instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			}
 			else {
-				instr.imm32 &= defyx::ScratchpadL3Mask;
+				instr.imm32 &= randomx::ScratchpadL3Mask;
 			}
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IMULH_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IMULH_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			instr.opcode |= SRC_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IMULH_M) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IMULH_M) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= DST_INT;
 			if (instr.src != instr.dst) {
-				instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+				instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			}
 			else {
-				instr.imm32 &= defyx::ScratchpadL3Mask;
+				instr.imm32 &= randomx::ScratchpadL3Mask;
 			}
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_ISMULH_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_ISMULH_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			instr.opcode |= SRC_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_ISMULH_M) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_ISMULH_M) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= DST_INT;
 			if (instr.src != instr.dst) {
-				instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+				instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			}
 			else {
-				instr.imm32 &= defyx::ScratchpadL3Mask;
+				instr.imm32 &= randomx::ScratchpadL3Mask;
 			}
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IMUL_RCP) {
+		if (opcode < randomx::ceil_IMUL_RCP) {
 			uint64_t divisor = instr.getImm32();
-			if (!defyx::isZeroOrPowerOf2(divisor)) {
-				instr.dst = instr.dst % defyx::RegistersCount;
+			if (!randomx::isZeroOrPowerOf2(divisor)) {
+				instr.dst = instr.dst % randomx::RegistersCount;
 				instr.opcode |= DST_INT;
 				registerUsage[instr.dst].lastUsed = i;
 			}
 			continue;
 		}
 
-		if (opcode < defyx::ceil_INEG_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
+		if (opcode < randomx::ceil_INEG_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IXOR_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IXOR_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			instr.opcode |= SRC_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IXOR_M) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IXOR_M) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= DST_INT;
 			if (instr.src != instr.dst) {
-				instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+				instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			}
 			else {
-				instr.imm32 &= defyx::ScratchpadL3Mask;
+				instr.imm32 &= randomx::ScratchpadL3Mask;
 			}
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IROR_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IROR_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			instr.opcode |= SRC_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_IROL_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_IROL_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_INT;
 			instr.opcode |= SRC_INT;
 			registerUsage[instr.dst].lastUsed = i;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_ISWAP_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_ISWAP_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			if (instr.src != instr.dst) {
 				instr.opcode |= DST_INT;
 				instr.opcode |= SRC_INT;
@@ -548,80 +548,80 @@ int analyze(defyx::Program& p) {
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FSWAP_R) {
-			instr.dst = instr.dst % defyx::RegistersCount;
+		if (opcode < randomx::ceil_FSWAP_R) {
+			instr.dst = instr.dst % randomx::RegistersCount;
 			instr.opcode |= DST_FLT;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FADD_R) {
-			instr.dst = instr.dst % defyx::RegisterCountFlt;
+		if (opcode < randomx::ceil_FADD_R) {
+			instr.dst = instr.dst % randomx::RegisterCountFlt;
 			instr.opcode |= DST_FLT;
 			instr.opcode |= OP_FLOAT;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FADD_M) {
-			instr.dst = instr.dst % defyx::RegisterCountFlt;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_FADD_M) {
+			instr.dst = instr.dst % randomx::RegisterCountFlt;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_FLT;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= OP_FLOAT;
-			instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+			instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FSUB_R) {
-			instr.dst = instr.dst % defyx::RegisterCountFlt;
+		if (opcode < randomx::ceil_FSUB_R) {
+			instr.dst = instr.dst % randomx::RegisterCountFlt;
 			instr.opcode |= DST_FLT;
 			instr.opcode |= OP_FLOAT;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FSUB_M) {
-			instr.dst = instr.dst % defyx::RegisterCountFlt;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_FSUB_M) {
+			instr.dst = instr.dst % randomx::RegisterCountFlt;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_FLT;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= OP_FLOAT;
-			instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+			instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FSCAL_R) {
-			instr.dst = instr.dst % defyx::RegisterCountFlt;
+		if (opcode < randomx::ceil_FSCAL_R) {
+			instr.dst = instr.dst % randomx::RegisterCountFlt;
 			instr.opcode |= DST_FLT;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FMUL_R) {
-			instr.dst = 4 + instr.dst % defyx::RegisterCountFlt;
+		if (opcode < randomx::ceil_FMUL_R) {
+			instr.dst = 4 + instr.dst % randomx::RegisterCountFlt;
 			instr.opcode |= DST_FLT;
 			instr.opcode |= OP_FLOAT;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FDIV_M) {
-			instr.dst = 4 + instr.dst % defyx::RegisterCountFlt;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_FDIV_M) {
+			instr.dst = 4 + instr.dst % randomx::RegisterCountFlt;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_FLT;
 			instr.opcode |= SRC_MEM;
 			instr.opcode |= OP_FLOAT;
-			instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+			instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			continue;
 		}
 
-		if (opcode < defyx::ceil_FSQRT_R) {
-			instr.dst = 4 + instr.dst % defyx::RegisterCountFlt;
+		if (opcode < randomx::ceil_FSQRT_R) {
+			instr.dst = 4 + instr.dst % randomx::RegisterCountFlt;
 			instr.opcode |= DST_FLT;
 			instr.opcode |= OP_FLOAT;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_CBRANCH) {
+		if (opcode < randomx::ceil_CBRANCH) {
 			instr.opcode |= OP_BRANCH;
 			instr.opcode |= DST_INT;
-			int reg = instr.dst % defyx::RegistersCount;
+			int reg = instr.dst % randomx::RegistersCount;
 			int target = registerUsage[reg].lastUsed;
 			int offset = (i - target);
 			instr.mod = offset;
@@ -630,31 +630,31 @@ int analyze(defyx::Program& p) {
 			registerUsage[reg].count++;
 			instr.dst = reg;
 			//mark all registers as used
-			for (unsigned j = 0; j < defyx::RegistersCount; ++j) {
+			for (unsigned j = 0; j < randomx::RegistersCount; ++j) {
 				registerUsage[j].lastUsed = i;
 			}
 			continue;
 		}
 
-		if (opcode < defyx::ceil_CFROUND) {
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_CFROUND) {
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= SRC_INT;
 			instr.opcode |= OP_CFROUND;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_ISTORE) {
-			instr.dst = instr.dst % defyx::RegistersCount;
-			instr.src = instr.src % defyx::RegistersCount;
+		if (opcode < randomx::ceil_ISTORE) {
+			instr.dst = instr.dst % randomx::RegistersCount;
+			instr.src = instr.src % randomx::RegistersCount;
 			instr.opcode |= DST_MEM;
-			if (instr.getModCond() < defyx::StoreL3Condition)
-				instr.imm32 = (instr.getModMem() ? defyx::ScratchpadL1Mask : defyx::ScratchpadL2Mask);
+			if (instr.getModCond() < randomx::StoreL3Condition)
+				instr.imm32 = (instr.getModMem() ? randomx::ScratchpadL1Mask : randomx::ScratchpadL2Mask);
 			else
-				instr.imm32 &= defyx::ScratchpadL3Mask;
+				instr.imm32 &= randomx::ScratchpadL3Mask;
 			continue;
 		}
 
-		if (opcode < defyx::ceil_NOP) {
+		if (opcode < randomx::ceil_NOP) {
 
 		}
 	}

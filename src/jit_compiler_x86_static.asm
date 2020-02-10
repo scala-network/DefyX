@@ -28,23 +28,26 @@ IFDEF RAX
 
 _RANDOMX_JITX86_STATIC SEGMENT PAGE READ EXECUTE
 
-PUBLIC defyx_program_prologue
-PUBLIC defyx_program_loop_begin
-PUBLIC defyx_program_loop_load
-PUBLIC defyx_program_start
-PUBLIC defyx_program_read_dataset
-PUBLIC defyx_program_read_dataset_sshash_init
-PUBLIC defyx_program_read_dataset_sshash_fin
-PUBLIC defyx_dataset_init
-PUBLIC defyx_program_loop_store
-PUBLIC defyx_program_loop_end
-PUBLIC defyx_program_epilogue
-PUBLIC defyx_sshash_load
-PUBLIC defyx_sshash_prefetch
-PUBLIC defyx_sshash_end
-PUBLIC defyx_sshash_init
-PUBLIC defyx_program_end
-PUBLIC defyx_reciprocal_fast
+PUBLIC randomx_prefetch_scratchpad
+PUBLIC randomx_prefetch_scratchpad_end
+PUBLIC randomx_program_prologue
+PUBLIC randomx_program_prologue_first_load
+PUBLIC randomx_program_loop_begin
+PUBLIC randomx_program_loop_load
+PUBLIC randomx_program_start
+PUBLIC randomx_program_read_dataset
+PUBLIC randomx_program_read_dataset_sshash_init
+PUBLIC randomx_program_read_dataset_sshash_fin
+PUBLIC randomx_dataset_init
+PUBLIC randomx_program_loop_store
+PUBLIC randomx_program_loop_end
+PUBLIC randomx_program_epilogue
+PUBLIC randomx_sshash_load
+PUBLIC randomx_sshash_prefetch
+PUBLIC randomx_sshash_end
+PUBLIC randomx_sshash_init
+PUBLIC randomx_program_end
+PUBLIC randomx_reciprocal_fast
 
 include asm/configuration.asm
 
@@ -54,53 +57,74 @@ RANDOMX_CACHE_MASK          EQU (RANDOMX_ARGON_MEMORY*16-1)
 RANDOMX_ALIGN               EQU 4096
 SUPERSCALAR_OFFSET          EQU ((((RANDOMX_ALIGN + 32 * RANDOMX_PROGRAM_SIZE) - 1) / (RANDOMX_ALIGN) + 1) * (RANDOMX_ALIGN))
 
+randomx_prefetch_scratchpad PROC
+	mov rdx, rax
+	and eax, RANDOMX_SCRATCHPAD_MASK
+	prefetcht0 [rsi+rax]
+	ror rdx, 32
+	and edx, RANDOMX_SCRATCHPAD_MASK
+	prefetcht0 [rsi+rdx]
+randomx_prefetch_scratchpad ENDP
+
+randomx_prefetch_scratchpad_end PROC
+randomx_prefetch_scratchpad_end ENDP
+
 ALIGN 64
-defyx_program_prologue PROC
+randomx_program_prologue PROC
 	include asm/program_prologue_win64.inc
 	movapd xmm13, xmmword ptr [mantissaMask]
 	movapd xmm14, xmmword ptr [exp240]
 	movapd xmm15, xmmword ptr [scaleMask]
-	jmp defyx_program_loop_begin
-defyx_program_prologue ENDP
+randomx_program_prologue ENDP
+
+randomx_program_prologue_first_load PROC
+	xor rax, r8
+	xor rax, r8
+	mov rdx, rax
+	and eax, RANDOMX_SCRATCHPAD_MASK
+	ror rdx, 32
+	and edx, RANDOMX_SCRATCHPAD_MASK
+	jmp randomx_program_loop_begin
+randomx_program_prologue_first_load ENDP
 
 ALIGN 64
 	include asm/program_xmm_constants.inc
 
 ALIGN 64
-defyx_program_loop_begin PROC
+randomx_program_loop_begin PROC
 	nop
-defyx_program_loop_begin ENDP
+randomx_program_loop_begin ENDP
 
-defyx_program_loop_load PROC
+randomx_program_loop_load PROC
 	include asm/program_loop_load.inc
-defyx_program_loop_load ENDP
+randomx_program_loop_load ENDP
 
-defyx_program_start PROC
+randomx_program_start PROC
 	nop
-defyx_program_start ENDP
+randomx_program_start ENDP
 
-defyx_program_read_dataset PROC
+randomx_program_read_dataset PROC
 	include asm/program_read_dataset.inc
-defyx_program_read_dataset ENDP
+randomx_program_read_dataset ENDP
 
-defyx_program_read_dataset_sshash_init PROC
+randomx_program_read_dataset_sshash_init PROC
 	include asm/program_read_dataset_sshash_init.inc
-defyx_program_read_dataset_sshash_init ENDP
+randomx_program_read_dataset_sshash_init ENDP
 
-defyx_program_read_dataset_sshash_fin PROC
+randomx_program_read_dataset_sshash_fin PROC
 	include asm/program_read_dataset_sshash_fin.inc
-defyx_program_read_dataset_sshash_fin ENDP
+randomx_program_read_dataset_sshash_fin ENDP
 
-defyx_program_loop_store PROC
+randomx_program_loop_store PROC
 	include asm/program_loop_store.inc
-defyx_program_loop_store ENDP
+randomx_program_loop_store ENDP
 
-defyx_program_loop_end PROC
+randomx_program_loop_end PROC
 	nop
-defyx_program_loop_end ENDP
+randomx_program_loop_end ENDP
 
 ALIGN 64
-defyx_dataset_init PROC
+randomx_dataset_init PROC
 	push rbx
 	push rbp
 	push rdi
@@ -118,7 +142,7 @@ init_block_loop:
 	mov rbx, rbp
 	db 232 ;# 0xE8 = call
 	dd SUPERSCALAR_OFFSET - distance
-	distance equ $ - offset defyx_dataset_init
+	distance equ $ - offset randomx_dataset_init
 	mov qword ptr [rsi+0], r8
 	mov qword ptr [rsi+8], r9
 	mov qword ptr [rsi+16], r10
@@ -141,29 +165,29 @@ init_block_loop:
 	pop rbp
 	pop rbx
 	ret
-defyx_dataset_init ENDP
+randomx_dataset_init ENDP
 
 ALIGN 64
-defyx_program_epilogue PROC
+randomx_program_epilogue PROC
 	include asm/program_epilogue_store.inc
 	include asm/program_epilogue_win64.inc
-defyx_program_epilogue ENDP
+randomx_program_epilogue ENDP
 
 ALIGN 64
-defyx_sshash_load PROC
+randomx_sshash_load PROC
 	include asm/program_sshash_load.inc
-defyx_sshash_load ENDP
+randomx_sshash_load ENDP
 
-defyx_sshash_prefetch PROC
+randomx_sshash_prefetch PROC
 	include asm/program_sshash_prefetch.inc
-defyx_sshash_prefetch ENDP
+randomx_sshash_prefetch ENDP
 
-defyx_sshash_end PROC
+randomx_sshash_end PROC
 	nop
-defyx_sshash_end ENDP
+randomx_sshash_end ENDP
 
 ALIGN 64
-defyx_sshash_init PROC
+randomx_sshash_init PROC
 	lea r8, [rbx+1]
 	include asm/program_sshash_prefetch.inc
 	imul r8, qword ptr [r0_mul]
@@ -181,20 +205,20 @@ defyx_sshash_init PROC
 	xor r14, r8
 	mov r15, qword ptr [r7_add]
 	xor r15, r8
-	jmp defyx_program_end
-defyx_sshash_init ENDP
+	jmp randomx_program_end
+randomx_sshash_init ENDP
 
 ALIGN 64
 	include asm/program_sshash_constants.inc
 
 ALIGN 64
-defyx_program_end PROC
+randomx_program_end PROC
 	nop
-defyx_program_end ENDP
+randomx_program_end ENDP
 
-defyx_reciprocal_fast PROC
-	include asm/defyx_reciprocal.inc
-defyx_reciprocal_fast ENDP
+randomx_reciprocal_fast PROC
+	include asm/randomx_reciprocal.inc
+randomx_reciprocal_fast ENDP
 
 _RANDOMX_JITX86_STATIC ENDS
 

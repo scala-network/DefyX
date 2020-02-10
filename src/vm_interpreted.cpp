@@ -37,10 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "intrin_portable.h"
 #include "reciprocal.h"
 
-namespace defyx {
+namespace randomx {
 
 	template<class Allocator, bool softAes>
-	void InterpretedVm<Allocator, softAes>::setDataset(defyx_dataset* dataset) {
+	void InterpretedVm<Allocator, softAes>::setDataset(randomx_dataset* dataset) {
 		datasetPtr = dataset;
 		mem.memory = dataset->memory;
 	}
@@ -48,7 +48,7 @@ namespace defyx {
 	template<class Allocator, bool softAes>
 	void InterpretedVm<Allocator, softAes>::run(void* seed) {
 		VmBase<Allocator, softAes>::generateProgram(seed);
-		defyx_vm::initialize();
+		randomx_vm::initialize();
 		execute();
 	}
 

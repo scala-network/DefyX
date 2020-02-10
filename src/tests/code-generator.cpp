@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../assembly_generator_x86.hpp"
 #include "../superscalar.hpp"
 #include "../aes_hash.hpp"
-#include "../blake2/blake2.h"
+#include "../blake2_yespower_k12/blake2_yk12.h"
 #include "../program.hpp"
 
 const uint8_t seed[32] = { 191, 182, 222, 175, 249, 89, 134, 104, 241, 68, 191, 62, 162, 166, 61, 64, 123, 191, 227, 193, 118, 60, 188, 53, 223, 133, 175, 24, 123, 230, 55, 74 };
@@ -50,10 +50,10 @@ void generateAsm(uint32_t nonce) {
 	memcpy(blockTemplate, blockTemplate_, sizeof(blockTemplate));
 	store32(blockTemplate + 39, nonce);
 	blake2b(hash, sizeof(hash), blockTemplate, sizeof(blockTemplate), nullptr, 0);
-	uint8_t scratchpad[defyx::ScratchpadSize];
-	fillAes1Rx4<softAes>((void*)hash, defyx::ScratchpadSize, scratchpad);
-	defyx::AssemblyGeneratorX86 asmX86;
-	defyx::Program p;
+	uint8_t scratchpad[randomx::ScratchpadSize];
+	fillAes1Rx4<softAes>((void*)hash, randomx::ScratchpadSize, scratchpad);
+	randomx::AssemblyGeneratorX86 asmX86;
+	randomx::Program p;
 	fillAes4Rx4<softAes>(hash, sizeof(p), &p);
 	asmX86.generateProgram(p);
 	asmX86.printCode(std::cout);
@@ -66,9 +66,9 @@ void generateNative(uint32_t nonce) {
 	memcpy(blockTemplate, blockTemplate_, sizeof(blockTemplate));
 	store32(blockTemplate + 39, nonce);
 	blake2b(hash, sizeof(hash), blockTemplate, sizeof(blockTemplate), nullptr, 0);
-	uint8_t scratchpad[defyx::ScratchpadSize];
-	fillAes1Rx4<softAes>((void*)hash, defyx::ScratchpadSize, scratchpad);
-	alignas(16) defyx::Program prog;
+	uint8_t scratchpad[randomx::ScratchpadSize];
+	fillAes1Rx4<softAes>((void*)hash, randomx::ScratchpadSize, scratchpad);
+	alignas(16) randomx::Program prog;
 	fillAes1Rx4<softAes>((void*)hash, sizeof(prog), &prog);
 	std::cout << prog << std::endl;
 }
@@ -79,7 +79,7 @@ void printUsage(const char* executable) {
 	std::cout << "  --softAes         use software AES (default: x86 AES-NI)" << std::endl;
 	std::cout << "  --nonce  N        seed nonce (default: 1000)" << std::endl;
 	std::cout << "  --genAsm          generate x86-64 asm code for nonce N" << std::endl;
-	std::cout << "  --genNative       generate DefyX code for nonce N" << std::endl;
+	std::cout << "  --genNative       generate RandomX code for nonce N" << std::endl;
 	std::cout << "  --genSuperscalar  generate superscalar program for nonce N" << std::endl;
 }
 
@@ -94,10 +94,10 @@ int main(int argc, char** argv) {
 	readOption("--genSuperscalar", argc, argv, genSuperscalar);
 
 	if (genSuperscalar) {
-		defyx::SuperscalarProgram p;
-		defyx::Blake2Generator gen(seed, nonce);
-		defyx::generateSuperscalar(p, gen);
-		defyx::AssemblyGeneratorX86 asmX86;
+		randomx::SuperscalarProgram p;
+		randomx::Blake2Generator gen(seed, nonce);
+		randomx::generateSuperscalar(p, gen);
+		randomx::AssemblyGeneratorX86 asmX86;
 		asmX86.generateAsm(p);
 		asmX86.printCode(std::cout);
 		return 0;

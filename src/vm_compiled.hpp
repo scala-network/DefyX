@@ -35,9 +35,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "allocator.hpp"
 #include "dataset.hpp"
 
-namespace defyx {
+namespace randomx {
 
-	template<class Allocator, bool softAes>
+	template<class Allocator, bool softAes, bool secureJit>
 	class CompiledVm : public VmBase<Allocator, softAes> {
 	public:
 		void* operator new(size_t size) {
@@ -49,7 +49,8 @@ namespace defyx {
 		void operator delete(void* ptr) {
 			AlignedAllocator<CacheLineSize>::freeMemory(ptr, sizeof(CompiledVm));
 		}
-		void setDataset(defyx_dataset* dataset) override;
+		CompiledVm();
+		void setDataset(randomx_dataset* dataset) override;
 		void run(void* seed) override;
 
 		using VmBase<Allocator, softAes>::mem;
@@ -65,8 +66,12 @@ namespace defyx {
 		JitCompiler compiler;
 	};
 
-	using CompiledVmDefault = CompiledVm<AlignedAllocator<CacheLineSize>, true>;
-	using CompiledVmHardAes = CompiledVm<AlignedAllocator<CacheLineSize>, false>;
-	using CompiledVmLargePage = CompiledVm<LargePageAllocator, true>;
-	using CompiledVmLargePageHardAes = CompiledVm<LargePageAllocator, false>;
+	using CompiledVmDefault = CompiledVm<AlignedAllocator<CacheLineSize>, true, false>;
+	using CompiledVmHardAes = CompiledVm<AlignedAllocator<CacheLineSize>, false, false>;
+	using CompiledVmLargePage = CompiledVm<LargePageAllocator, true, false>;
+	using CompiledVmLargePageHardAes = CompiledVm<LargePageAllocator, false, false>;
+	using CompiledVmDefaultSecure = CompiledVm<AlignedAllocator<CacheLineSize>, true, true>;
+	using CompiledVmHardAesSecure = CompiledVm<AlignedAllocator<CacheLineSize>, false, true>;
+	using CompiledVmLargePageSecure = CompiledVm<LargePageAllocator, true, true>;
+	using CompiledVmLargePageHardAesSecure = CompiledVm<LargePageAllocator, false, true>;
 }

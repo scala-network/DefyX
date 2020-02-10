@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "intrin_portable.h"
 #include "allocator.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	template<class Allocator, bool softAes>
 	class InterpretedVm : public VmBase<Allocator, softAes>, public BytecodeMachine {
@@ -58,7 +58,7 @@ namespace defyx {
 			AlignedAllocator<CacheLineSize>::freeMemory(ptr, sizeof(InterpretedVm));
 		}
 		void run(void* seed) override;
-		void setDataset(defyx_dataset* dataset) override;
+		void setDataset(randomx_dataset* dataset) override;
 	protected:
 		virtual void datasetRead(uint64_t blockNumber, int_reg_t(&r)[RegistersCount]);
 		virtual void datasetPrefetch(uint64_t blockNumber);

@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "superscalar_program.hpp"
 #include "blake2_generator.hpp"
 
-namespace defyx {
+namespace randomx {
 	                                              //                  Intel Ivy Bridge reference
 	enum class SuperscalarInstructionType {       //uOPs (decode)   execution ports         latency       code size
 		ISUB_R = 0,                               //1               p015                    1               3 (sub)

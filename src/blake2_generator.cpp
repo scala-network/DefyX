@@ -27,11 +27,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stddef.h>
-#include "blake2/blake2.h"
-#include "blake2/endian.h"
+#include "blake2_yespower_k12/blake2_yk12.h"
+#include "blake2_yespower_k12/endian.h"
 #include "blake2_generator.hpp"
 
-namespace defyx {
+namespace randomx {
 
 	constexpr int maxSeedSize = 60;
 

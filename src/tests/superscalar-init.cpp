@@ -16,7 +16,7 @@ int main() {
 	constexpr uint64_t superscalarAdd5 = 10536153434571861004ULL;
 	constexpr uint64_t superscalarAdd6 = 3398623926847679864ULL;
 	constexpr uint64_t superscalarAdd7 = 9549104520008361294ULL;
-	constexpr uint32_t totalItems = defyx::DatasetSize / defyx::CacheLineSize;
+	constexpr uint32_t totalItems = randomx::DatasetSize / randomx::CacheLineSize;
 	std::unordered_set<uint64_t> registerValues;
 	registerValues.reserve(totalItems);
 	registerValues.rehash(totalItems);

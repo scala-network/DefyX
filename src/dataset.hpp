@@ -36,19 +36,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "allocator.hpp"
 
 /* Global scope for C binding */
-struct defyx_dataset {
+struct randomx_dataset {
 	uint8_t* memory = nullptr;
-	defyx::DatasetDeallocFunc* dealloc;
+	randomx::DatasetDeallocFunc* dealloc;
 };
 
 /* Global scope for C binding */
-struct defyx_cache {
+struct randomx_cache {
 	uint8_t* memory = nullptr;
-	defyx::CacheDeallocFunc* dealloc;
-	defyx::JitCompiler* jit;
-	defyx::CacheInitializeFunc* initialize;
-	defyx::DatasetInitFunc* datasetInit;
-	defyx::SuperscalarProgram programs[RANDOMX_CACHE_ACCESSES];
+	randomx::CacheDeallocFunc* dealloc;
+	randomx::JitCompiler* jit;
+	randomx::CacheInitializeFunc* initialize;
+	randomx::DatasetInitFunc* datasetInit;
+	randomx::SuperscalarProgram programs[RANDOMX_CACHE_ACCESSES];
 	std::vector<uint64_t> reciprocalCache;
 	std::string cacheKey;
 
@@ -58,24 +58,25 @@ struct defyx_cache {
 };
 
 //A pointer to a standard-layout struct object points to its initial member
-static_assert(std::is_standard_layout<defyx_dataset>(), "defyx_dataset must be a standard-layout struct");
-static_assert(std::is_standard_layout<defyx_cache>(), "defyx_cache must be a standard-layout struct");
+static_assert(std::is_standard_layout<randomx_dataset>(), "randomx_dataset must be a standard-layout struct");
+//the following assert fails when compiling Debug in Visual Studio (JIT mode will crash in Debug)
+static_assert(std::is_standard_layout<randomx_cache>(), "randomx_cache must be a standard-layout struct");
 
-namespace defyx {
+namespace randomx {
 
 	using DefaultAllocator = AlignedAllocator<CacheLineSize>;
 
 	template<class Allocator>
-	void deallocDataset(defyx_dataset* dataset) {
+	void deallocDataset(randomx_dataset* dataset) {
 		if (dataset->memory != nullptr)
 			Allocator::freeMemory(dataset->memory, DatasetSize);
 	}
 
 	template<class Allocator>
-	void deallocCache(defyx_cache* cache);
+	void deallocCache(randomx_cache* cache);
 
-	void initCache(defyx_cache*, const void*, size_t);
-	void initCacheCompile(defyx_cache*, const void*, size_t);
-	void initDatasetItem(defyx_cache* cache, uint8_t* out, uint64_t blockNumber);
-	void initDataset(defyx_cache* cache, uint8_t* dataset, uint32_t startBlock, uint32_t endBlock);
+	void initCache(randomx_cache*, const void*, size_t);
+	void initCacheCompile(randomx_cache*, const void*, size_t);
+	void initDatasetItem(randomx_cache* cache, uint8_t* out, uint64_t blockNumber);
+	void initDataset(randomx_cache* cache, uint8_t* dataset, uint32_t startBlock, uint32_t endBlock);
 }

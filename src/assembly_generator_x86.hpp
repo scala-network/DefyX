@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common.hpp"
 #include <sstream>
 
-namespace defyx {
+namespace randomx {
 
 	class Program;
 	class SuperscalarProgram;
