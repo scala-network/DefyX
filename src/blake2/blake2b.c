@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include <limits.h>
 
 #include "blake2.h"
 #include "blake2-impl.h"
@@ -122,9 +121,11 @@ int sipesh(void *out, size_t outlen, const void *in, size_t inlen, const void *s
 
 	if (yescrypt_init_local(&local))
 		return -1;
+
 	retval = yescrypt_kdf(NULL, &local, in, inlen, salt, saltlen,
 	    (uint64_t)YESCRYPT_BASE_N << m_cost, YESCRYPT_R, YESCRYPT_P,
-	    t_cost, 0, YESCRYPT_FLAGS, out, outlen);
+	    t_cost, YESCRYPT_FLAGS, out, outlen);
+
 	if (yescrypt_free_local(&local))
 		return -1;
 	return retval;
@@ -380,7 +381,7 @@ fail:
 }
 
 /* Argon2 Team - Begin Code */
-int rxa2_blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
+int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
 	uint8_t *out = (uint8_t *)pout;
 	blake2b_state blake_state;
 	uint8_t outlen_bytes[sizeof(uint32_t)] = { 0 };

@@ -1,5 +1,5 @@
 /*-
- * Copyright 2013-2015 Alexander Peslyak
+ * Copyright 2013,2014 Alexander Peslyak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,14 +17,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#ifdef __unix__
-#include <sys/mman.h>
-#endif
-
-#include <stdint.h>
-
 #include "yescrypt.h"
+//#include <sys/mman.h>
 
 #define HUGEPAGE_THRESHOLD		(12 * 1024 * 1024)
 
@@ -79,7 +73,7 @@ alloc_region(yescrypt_region_t * region, size_t size)
 #else
 	base = aligned = NULL;
 	if (size + 63 < size) {
-		//errno = ENOMEM;
+		// errno = ENOMEM;
 	} else if ((base = malloc(size + 63)) != NULL) {
 		aligned = base + 63;
 		aligned -= (uintptr_t)aligned & 63;
@@ -114,77 +108,83 @@ free_region(yescrypt_region_t * region)
 	return 0;
 }
 
-int
+static int
 yescrypt_init_shared(yescrypt_shared_t * shared,
     const uint8_t * param, size_t paramlen,
     uint64_t N, uint32_t r, uint32_t p,
-    yescrypt_init_shared_flags_t flags,
+    yescrypt_init_shared_flags_t flags, uint32_t mask,
     uint8_t * buf, size_t buflen)
 {
-	yescrypt_shared_t half1, half2;
+	yescrypt_shared1_t * shared1 = &shared->shared1;
+	yescrypt_shared_t dummy, half1, half2;
 	uint8_t salt[32];
 
 	if (flags & YESCRYPT_SHARED_PREALLOCATED) {
-		if (!shared->aligned || !shared->aligned_size)
+		if (!shared1->aligned || !shared1->aligned_size)
 			return -1;
 	} else {
-		init_region(shared);
+		init_region(shared1);
 	}
+	shared->mask1 = 1;
 	if (!param && !paramlen && !N && !r && !p && !buf && !buflen)
 		return 0;
 
-	if (yescrypt_kdf(NULL, shared,
-	    param, paramlen, NULL, 0, N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_1,
+	init_region(&dummy.shared1);
+	dummy.mask1 = 1;
+	if (yescrypt_kdf(&dummy, shared1,
+	    param, paramlen, NULL, 0, N, r, p, 0,
+	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_1,
 	    salt, sizeof(salt)))
 		goto out;
 
 	half1 = half2 = *shared;
-	half1.aligned_size /= 2;
-	half2.aligned += half1.aligned_size;
-	half2.aligned_size = half1.aligned_size;
+	half1.shared1.aligned_size /= 2;
+	half2.shared1.aligned += half1.shared1.aligned_size;
+	half2.shared1.aligned_size = half1.shared1.aligned_size;
 	N /= 2;
 
-	if (p > 1 && yescrypt_kdf(&half1, &half2,
-	    param, paramlen, salt, sizeof(salt), N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_2,
+	if (p > 1 && yescrypt_kdf(&half1, &half2.shared1,
+	    param, paramlen, salt, sizeof(salt), N, r, p, 0,
+	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_2,
 	    salt, sizeof(salt)))
 		goto out;
 
-	if (yescrypt_kdf(&half2, &half1,
-	    param, paramlen, salt, sizeof(salt), N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_1,
+	if (yescrypt_kdf(&half2, &half1.shared1,
+	    param, paramlen, salt, sizeof(salt), N, r, p, 0,
+	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_1,
 	    salt, sizeof(salt)))
 		goto out;
 
-	if (yescrypt_kdf(&half1, &half2,
-	    param, paramlen, salt, sizeof(salt), N, r, p, 0, 0,
-	    YESCRYPT_RW | __YESCRYPT_INIT_SHARED_1,
+	if (yescrypt_kdf(&half1, &half2.shared1,
+	    param, paramlen, salt, sizeof(salt), N, r, p, 0,
+	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_1,
 	    buf, buflen))
 		goto out;
+
+	shared->mask1 = mask;
 
 	return 0;
 
 out:
 	if (!(flags & YESCRYPT_SHARED_PREALLOCATED))
-		free_region(shared);
+		free_region(shared1);
 	return -1;
 }
 
-int
+static int
 yescrypt_free_shared(yescrypt_shared_t * shared)
 {
-	return free_region(shared);
+	return free_region(&shared->shared1);
 }
 
-int
+static int
 yescrypt_init_local(yescrypt_local_t * local)
 {
 	init_region(local);
 	return 0;
 }
 
-int
+static int
 yescrypt_free_local(yescrypt_local_t * local)
 {
 	return free_region(local);

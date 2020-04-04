@@ -170,7 +170,7 @@ yescrypt_r(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 		return NULL;
 
 	if (yescrypt_kdf(shared, local, passwd, passwdlen, salt, saltlen,
-	    N, r, p, 0, 0, flags, hash, sizeof(hash)))
+	    N, r, p, 0, flags, hash, sizeof(hash)))
 		return NULL;
 
 	dst = buf;
@@ -282,7 +282,7 @@ crypto_scrypt(const uint8_t * passwd, size_t passwdlen,
 	if (yescrypt_init_local(&local))
 		return -1;
 	retval = yescrypt_kdf(NULL, &local,
-	    passwd, passwdlen, salt, saltlen, N, r, p, 0, 0, 0, buf, buflen);
+	    passwd, passwdlen, salt, saltlen, N, r, p, 0, 0, buf, buflen);
 	if (yescrypt_free_local(&local))
 		return -1;
 	return retval;
