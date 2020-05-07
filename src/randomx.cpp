@@ -324,8 +324,8 @@ extern "C" {
 		alignas(16) uint64_t tempHash[8];
 
 		int blakeResult = blake2b(tempHash, sizeof(tempHash), input, inputSize, nullptr, 0);
-		int yespowerResult = yespower_hash(input, inputSize, tempHash);
-		int k12Result = k12(input, inputSize, tempHash);
+		int yespowerResult = yespower_hash(tempHash, sizeof(tempHash), tempHash);
+		int k12Result = k12(tempHash, sizeof(tempHash), tempHash);
 
 		assert(blakeResult == 0);
 

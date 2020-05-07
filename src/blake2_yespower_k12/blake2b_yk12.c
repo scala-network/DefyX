@@ -111,8 +111,8 @@ int yespower_hash(const void *data, size_t length, void *hash)
 {
 		yespower_params_t params = {
 		.version = YESPOWER_1_0,
-		.N = 2048,
-		.r = 8,
+		.N = 1024,
+		.r = 4,
 		.pers = NULL
 		};
 
