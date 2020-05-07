@@ -26,35 +26,51 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <new>
-#include "allocator.hpp"
-#include "intrin_portable.h"
-#include "virtual_memory.hpp"
-#include "common.hpp"
+/* Original code from Argon2 reference source code package used under CC0 Licence
+ * https://github.com/P-H-C/phc-winner-argon2
+ * Copyright 2015
+ * Daniel Dinu, Dmitry Khovratovich, Jean-Philippe Aumasson, and Samuel Neves
+*/
 
-namespace randomx {
+#ifndef PORTABLE_BLAKE2_IMPL_H
+#define PORTABLE_BLAKE2_IMPL_H
 
-	template<size_t alignment>
-	void* AlignedAllocator<alignment>::allocMemory(size_t count) {
-		void *mem = rx_aligned_alloc(count, alignment);
-		if (mem == nullptr)
-			throw std::bad_alloc();
-		return mem;
-	}
+#include <stdint.h>
 
-	template<size_t alignment>
-	void AlignedAllocator<alignment>::freeMemory(void* ptr, size_t count) {
-		rx_aligned_free(ptr);
-	}
+#include "endian.h"
 
-	template struct AlignedAllocator<CacheLineSize>;
-
-	void* LargePageAllocator::allocMemory(size_t count) {
-		return allocLargePagesMemory(count);
-	}
-
-	void LargePageAllocator::freeMemory(void* ptr, size_t count) {
-		freePagedMemory(ptr, count);
-	};
-
+static FORCE_INLINE uint64_t load48(const void *src) {
+	const uint8_t *p = (const uint8_t *)src;
+	uint64_t w = *p++;
+	w |= (uint64_t)(*p++) << 8;
+	w |= (uint64_t)(*p++) << 16;
+	w |= (uint64_t)(*p++) << 24;
+	w |= (uint64_t)(*p++) << 32;
+	w |= (uint64_t)(*p++) << 40;
+	return w;
 }
+
+static FORCE_INLINE void store48(void *dst, uint64_t w) {
+	uint8_t *p = (uint8_t *)dst;
+	*p++ = (uint8_t)w;
+	w >>= 8;
+	*p++ = (uint8_t)w;
+	w >>= 8;
+	*p++ = (uint8_t)w;
+	w >>= 8;
+	*p++ = (uint8_t)w;
+	w >>= 8;
+	*p++ = (uint8_t)w;
+	w >>= 8;
+	*p++ = (uint8_t)w;
+}
+
+static FORCE_INLINE uint32_t rotr32(const uint32_t w, const unsigned c) {
+	return (w >> c) | (w << (32 - c));
+}
+
+static FORCE_INLINE uint64_t rotr64(const uint64_t w, const unsigned c) {
+	return (w >> c) | (w << (64 - c));
+}
+
+#endif

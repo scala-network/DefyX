@@ -109,12 +109,6 @@ extern "C" {
 	int blake2b_long(void *out, size_t outlen, const void *in, size_t inlen);
 	/* Argon2 Team - End Code */
 
-	/* Yespower */
-	int yespower_hash(const void *data, size_t length, void *hash);
-
-	/* KangarooTwelve */
-	int k12(const void *data, size_t length, void *hash);
-
 #if defined(__cplusplus)
 }
 #endif

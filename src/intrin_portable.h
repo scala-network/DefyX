@@ -102,6 +102,7 @@ typedef __m128d rx_vec_f128;
 #define rx_aligned_alloc(a, b) _mm_malloc(a,b)
 #define rx_aligned_free(a) _mm_free(a)
 #define rx_prefetch_nta(x) _mm_prefetch((const char *)(x), _MM_HINT_NTA)
+#define rx_prefetch_t0(x) _mm_prefetch((const char *)(x), _MM_HINT_T0)
 
 #define rx_load_vec_f128 _mm_load_pd
 #define rx_store_vec_f128 _mm_store_pd
@@ -132,7 +133,7 @@ FORCE_INLINE rx_vec_f128 rx_set1_vec_f128(uint64_t x) {
 #define rx_aesenc_vec_i128 _mm_aesenc_si128
 #define rx_aesdec_vec_i128 _mm_aesdec_si128
 
-#define HAVE_AES
+#define HAVE_AES 1
 
 #endif //__AES__
 
@@ -201,6 +202,7 @@ typedef union{
 #define rx_aligned_alloc(a, b) malloc(a)
 #define rx_aligned_free(a) free(a)
 #define rx_prefetch_nta(x)
+#define rx_prefetch_t0(x)
 
 /* Splat 64-bit long long to 2 64-bit long longs */
 FORCE_INLINE __m128i vec_splat2sd (int64_t scalar)
@@ -303,7 +305,7 @@ FORCE_INLINE rx_vec_i128 rx_aesdec_vec_i128(rx_vec_i128 v, rx_vec_i128 rkey) {
 	__m128ll out = vrev((__m128i)__builtin_crypto_vncipher(_v,zero));
 	return (rx_vec_i128)vec_xor((__m128i)out,rkey);
 }
-#define HAVE_AES
+#define HAVE_AES 1
 
 #endif //__CRYPTO__
 
@@ -399,6 +401,10 @@ inline void rx_prefetch_nta(void* ptr) {
 	asm volatile ("prfm pldl1strm, [%0]\n" : : "r" (ptr));
 }
 
+inline void rx_prefetch_t0(const void* ptr) {
+	asm volatile ("prfm pldl1strm, [%0]\n" : : "r" (ptr));
+}
+
 FORCE_INLINE rx_vec_f128 rx_load_vec_f128(const double* pd) {
 	return vld1q_f64((const float64_t*)pd);
 }
@@ -455,7 +461,7 @@ FORCE_INLINE rx_vec_i128 rx_aesdec_vec_i128(rx_vec_i128 a, rx_vec_i128 key) {
 	return vaesimcq_u8(vaesdq_u8(a, zero)) ^ key;
 }
 
-#define HAVE_AES
+#define HAVE_AES 1
 
 #endif
 
@@ -532,6 +538,7 @@ typedef union {
 #define rx_aligned_alloc(a, b) malloc(a)
 #define rx_aligned_free(a) free(a)
 #define rx_prefetch_nta(x)
+#define rx_prefetch_t0(x)
 
 FORCE_INLINE rx_vec_f128 rx_load_vec_f128(const double* pd) {
 	rx_vec_f128 x;
@@ -718,6 +725,9 @@ FORCE_INLINE rx_vec_i128 rx_aesenc_vec_i128(rx_vec_i128 v, rx_vec_i128 rkey) {
 FORCE_INLINE rx_vec_i128 rx_aesdec_vec_i128(rx_vec_i128 v, rx_vec_i128 rkey) {
 	throw std::runtime_error(platformError);
 }
+
+#define HAVE_AES 0
+
 #endif
 
 #ifdef RANDOMX_DEFAULT_FENV

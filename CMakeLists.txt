@@ -28,10 +28,15 @@
 
 cmake_minimum_required(VERSION 2.8.7)
 
-set (randomx_sources
+project(RandomX)
+
+set(randomx_sources
 src/aes_hash.cpp
 src/argon2_ref.c
+src/argon2_ssse3.c
+src/argon2_avx2.c
 src/bytecode_machine.cpp
+src/cpu.cpp
 src/dataset.cpp
 src/soft_aes.cpp
 src/virtual_memory.cpp
@@ -96,23 +101,50 @@ function(add_flag flag)
 endfunction()
 
 # x86-64
-if (ARCH_ID STREQUAL "x86_64" OR ARCH_ID STREQUAL "x86-64" OR ARCH_ID STREQUAL "amd64")
+if(ARCH_ID STREQUAL "x86_64" OR ARCH_ID STREQUAL "x86-64" OR ARCH_ID STREQUAL "amd64")
   list(APPEND randomx_sources
-    src/jit_compiler_x86_static.S
     src/jit_compiler_x86.cpp)
-  # cheat because cmake and ccache hate each other
-  set_property(SOURCE src/jit_compiler_x86_static.S PROPERTY LANGUAGE C)
 
-  if(ARCH STREQUAL "native")
-    add_flag("-march=native")
+  if(MSVC)
+    enable_language(ASM_MASM)
+    list(APPEND randomx_sources src/jit_compiler_x86_static.asm)
+
+    set_property(SOURCE src/jit_compiler_x86_static.asm PROPERTY LANGUAGE ASM_MASM)
+
+    set_source_files_properties(src/argon2_avx2.c COMPILE_FLAGS /arch:AVX2)
+
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/asm/configuration.asm
+      COMMAND powershell -ExecutionPolicy Bypass -File h2inc.ps1 ..\\src\\configuration.h > ..\\src\\asm\\configuration.asm SET ERRORLEVEL = 0
+      COMMENT "Generating configuration.asm at ${CMAKE_CURRENT_SOURCE_DIR}"
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vcxproj)
+    add_custom_target(generate-asm
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/asm/configuration.asm)
   else()
-    # default build has hardware AES enabled (software AES can be selected at runtime)
-    add_flag("-maes")
+    list(APPEND randomx_sources src/jit_compiler_x86_static.S)
+
+    # cheat because cmake and ccache hate each other
+    set_property(SOURCE src/jit_compiler_x86_static.S PROPERTY LANGUAGE C)
+    set_property(SOURCE src/jit_compiler_x86_static.S PROPERTY XCODE_EXPLICIT_FILE_TYPE sourcecode.asm)
+
+    if(ARCH STREQUAL "native")
+      add_flag("-march=native")
+    else()
+      # default build has hardware AES enabled (software AES can be selected at runtime)
+      add_flag("-maes")
+      check_c_compiler_flag(-mssse3 HAVE_SSSE3)
+      if(HAVE_SSSE3)
+        set_source_files_properties(src/argon2_ssse3.c COMPILE_FLAGS -mssse3)
+      endif()
+      check_c_compiler_flag(-mavx2 HAVE_AVX2)
+      if(HAVE_AVX2)
+        set_source_files_properties(src/argon2_avx2.c COMPILE_FLAGS -mavx2)
+      endif()
+    endif()
   endif()
 endif()
 
 # PowerPC
-if (ARCH_ID STREQUAL "ppc64" OR ARCH_ID STREQUAL "ppc64le")
+if(ARCH_ID STREQUAL "ppc64" OR ARCH_ID STREQUAL "ppc64le")
   if(ARCH STREQUAL "native")
     add_flag("-mcpu=native")
   endif()
@@ -120,12 +152,20 @@ if (ARCH_ID STREQUAL "ppc64" OR ARCH_ID STREQUAL "ppc64le")
 endif()
 
 # ARMv8
-if (ARM_ID STREQUAL "aarch64" OR ARM_ID STREQUAL "arm64" OR ARM_ID STREQUAL "armv8-a")
+if(ARM_ID STREQUAL "aarch64" OR ARM_ID STREQUAL "arm64" OR ARM_ID STREQUAL "armv8-a")
   list(APPEND randomx_sources
     src/jit_compiler_a64_static.S
     src/jit_compiler_a64.cpp)
   # cheat because cmake and ccache hate each other
   set_property(SOURCE src/jit_compiler_a64_static.S PROPERTY LANGUAGE C)
+  set_property(SOURCE src/jit_compiler_x86_static.S PROPERTY XCODE_EXPLICIT_FILE_TYPE sourcecode.asm)
+
+  # not sure if this check is needed
+  include(CheckIncludeFile)
+  check_include_file(asm/hwcap.h HAVE_HWCAP)
+  if(HAVE_HWCAP)
+    add_definitions(-DHAVE_HWCAP)
+  endif()
 
   if(ARCH STREQUAL "native")
     add_flag("-march=native")
@@ -137,14 +177,22 @@ endif()
 
 set(RANDOMX_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/src" CACHE STRING "RandomX Include path")
 
-add_library(randomx
-  ${randomx_sources})
+add_library(randomx ${randomx_sources})
+
+if(TARGET generate-asm)
+  add_dependencies(randomx generate-asm)
+endif()
+
 set_property(TARGET randomx PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET randomx PROPERTY CXX_STANDARD 11)
 set_property(TARGET randomx PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET randomx PROPERTY PUBLIC_HEADER src/randomx.h)
+
+include(GNUInstallDirs)
 install(TARGETS randomx
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib)
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 add_executable(randomx-tests
   src/tests/tests.cpp)
@@ -161,7 +209,7 @@ target_link_libraries(randomx-codegen
 set_property(TARGET randomx-codegen PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET randomx-codegen PROPERTY CXX_STANDARD 11)
 
-if (NOT Threads_FOUND AND UNIX AND NOT APPLE)
+if(NOT Threads_FOUND AND UNIX AND NOT APPLE)
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads)
 endif()

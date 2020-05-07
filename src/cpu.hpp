@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2019, tevador <tevador@gmail.com>
+Copyright (c) 2019, tevador <tevador@gmail.com>
 
 All rights reserved.
 
@@ -26,35 +26,24 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <new>
-#include "allocator.hpp"
-#include "intrin_portable.h"
-#include "virtual_memory.hpp"
-#include "common.hpp"
+#pragma once
 
 namespace randomx {
 
-	template<size_t alignment>
-	void* AlignedAllocator<alignment>::allocMemory(size_t count) {
-		void *mem = rx_aligned_alloc(count, alignment);
-		if (mem == nullptr)
-			throw std::bad_alloc();
-		return mem;
-	}
-
-	template<size_t alignment>
-	void AlignedAllocator<alignment>::freeMemory(void* ptr, size_t count) {
-		rx_aligned_free(ptr);
-	}
-
-	template struct AlignedAllocator<CacheLineSize>;
-
-	void* LargePageAllocator::allocMemory(size_t count) {
-		return allocLargePagesMemory(count);
-	}
-
-	void LargePageAllocator::freeMemory(void* ptr, size_t count) {
-		freePagedMemory(ptr, count);
+	class Cpu {
+	public:
+		Cpu();
+		bool hasAes() const {
+			return aes_;
+		}
+		bool hasSsse3() const {
+			return ssse3_;
+		}
+		bool hasAvx2() const {
+			return avx2_;
+		}
+	private:
+		bool aes_, ssse3_, avx2_;
 	};
 
 }

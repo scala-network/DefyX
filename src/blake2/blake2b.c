@@ -38,8 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "blake2_yk12.h"
 #include "blake2-impl.h"
-#include "yespower.h"
-#include "KangarooTwelve.h"
 
 static const uint64_t blake2b_IV[8] = {
 	UINT64_C(0x6a09e667f3bcc908), UINT64_C(0xbb67ae8584caa73b),
@@ -104,28 +102,6 @@ int blake2b_init_param(blake2b_state *S, const blake2b_param *P) {
 	}
 	S->outlen = P->digest_length;
 	return 0;
-}
-
-/* Yespower Hash function */
-int yespower_hash(const void *data, size_t length, void *hash)
-{
-		yespower_params_t params = {
-		.version = YESPOWER_1_0,
-		.N = 1024,
-		.r = 4,
-		.pers = NULL
-		};
-
-		int finale_yespower = yespower_tls((const uint8_t *)data, length, &params, (yespower_binary_t *)hash);
-		return finale_yespower; //0 for success
-}
-
-/* K12 Hash fnuction */
-int k12(const void *data, size_t length, void *hash)
-{
-
-  int k12 = KangarooTwelve((const unsigned char *)data, length, (unsigned char *)hash, 32, 0, 0);
-  return k12; // 0 for success
 }
 
 /* Sequential blake2b initialization */

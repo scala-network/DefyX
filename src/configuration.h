@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RANDOMX_DATASET_EXTRA_SIZE 33554368
 
 //Number of instructions in a RandomX program. Must be divisible by 8.
-#define RANDOMX_PROGRAM_SIZE       320
+#define RANDOMX_PROGRAM_SIZE       256
 
 //Number of iterations during VM execution.
 #define RANDOMX_PROGRAM_ITERATIONS 2048
@@ -82,7 +82,7 @@ Total sum of frequencies must be 256
 */
 
 //Integer instructions
-#define RANDOMX_FREQ_IADD_RS       25
+#define RANDOMX_FREQ_IADD_RS       16
 #define RANDOMX_FREQ_IADD_M         7
 #define RANDOMX_FREQ_ISUB_R        16
 #define RANDOMX_FREQ_ISUB_M         7
@@ -112,7 +112,7 @@ Total sum of frequencies must be 256
 #define RANDOMX_FREQ_FSQRT_R        6
 
 //Control instructions
-#define RANDOMX_FREQ_CBRANCH       16
+#define RANDOMX_FREQ_CBRANCH       25
 #define RANDOMX_FREQ_CFROUND        1
 
 //Store instruction

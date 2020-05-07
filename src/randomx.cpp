@@ -33,17 +33,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vm_compiled.hpp"
 #include "vm_compiled_light.hpp"
 #include "blake2_yespower_k12/blake2_yk12.h"
+#include "cpu.hpp"
 #include <cassert>
 #include <limits>
 
 extern "C" {
 
+	randomx_flags randomx_get_flags() {
+		randomx_flags flags = RANDOMX_HAVE_COMPILER ? RANDOMX_FLAG_JIT : RANDOMX_FLAG_DEFAULT;
+		randomx::Cpu cpu;
+#ifdef __OpenBSD__
+		if (flags == RANDOMX_FLAG_JIT) {
+			flags |= RANDOMX_FLAG_SECURE;
+		}
+#endif
+		if (HAVE_AES && cpu.hasAes()) {
+			flags |= RANDOMX_FLAG_HARD_AES;
+		}
+		if (randomx_argon2_impl_avx2() != nullptr && cpu.hasAvx2()) {
+			flags |= RANDOMX_FLAG_ARGON2_AVX2;
+		}
+		if (randomx_argon2_impl_ssse3() != nullptr && cpu.hasSsse3()) {
+			flags |= RANDOMX_FLAG_ARGON2_SSSE3;
+		}
+		return flags;
+	}
+
 	randomx_cache *randomx_alloc_cache(randomx_flags flags) {
-		randomx_cache *cache;
+		randomx_cache *cache = nullptr;
+		auto impl = randomx::selectArgonImpl(flags);
+		if (impl == nullptr) {
+			return cache;
+		}
 
 		try {
 			cache = new randomx_cache();
-			switch (flags & (RANDOMX_FLAG_JIT | RANDOMX_FLAG_LARGE_PAGES)) {
+			cache->argonImpl = impl;
+			switch ((int)(flags & (RANDOMX_FLAG_JIT | RANDOMX_FLAG_LARGE_PAGES))) {
 				case RANDOMX_FLAG_DEFAULT:
 					cache->dealloc = &randomx::deallocCache<randomx::DefaultAllocator>;
 					cache->jit = nullptr;
@@ -103,7 +129,9 @@ extern "C" {
 
 	void randomx_release_cache(randomx_cache* cache) {
 		assert(cache != nullptr);
-		cache->dealloc(cache);
+		if (cache->memory != nullptr) {
+			cache->dealloc(cache);
+		}
 		delete cache;
 	}
 
@@ -114,7 +142,7 @@ extern "C" {
 			return nullptr;
 		}
 
-		randomx_dataset *dataset;
+		randomx_dataset *dataset = nullptr;
 
 		try {
 			dataset = new randomx_dataset();
@@ -170,7 +198,7 @@ extern "C" {
 		randomx_vm *vm = nullptr;
 
 		try {
-			switch (flags & (RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_HARD_AES | RANDOMX_FLAG_LARGE_PAGES)) {
+			switch ((int)(flags & (RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_HARD_AES | RANDOMX_FLAG_LARGE_PAGES))) {
 				case RANDOMX_FLAG_DEFAULT:
 					vm = new randomx::InterpretedLightVmDefault();
 					break;
@@ -322,13 +350,10 @@ extern "C" {
 		assert(inputSize == 0 || input != nullptr);
 		assert(output != nullptr);
 		alignas(16) uint64_t tempHash[8];
-
-		int blakeResult = blake2b(tempHash, sizeof(tempHash), input, inputSize, nullptr, 0);
-		int yespowerResult = yespower_hash(input, inputSize, tempHash);
-		int k12Result = k12(input, inputSize, tempHash);
-
+		yespower_hash(input, inputSize, tempHash);
+		k12(tempHash, sizeof(tempHash), tempHash);
+		int blakeResult = blake2b(tempHash, sizeof(tempHash), tempHash, sizeof(tempHash), nullptr, 0);
 		assert(blakeResult == 0);
-
 		machine->initScratchpad(&tempHash);
 		machine->resetRoundingMode();
 		for (int chain = 0; chain < RANDOMX_PROGRAM_COUNT - 1; ++chain) {
@@ -340,4 +365,35 @@ extern "C" {
 		machine->getFinalResult(output, RANDOMX_HASH_SIZE);
 	}
 
+	void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize) {
+		yespower_hash(input, inputSize, machine->tempHash);
+		k12(machine->tempHash, sizeof(machine->tempHash), machine->tempHash);
+		blake2b(machine->tempHash, sizeof(machine->tempHash), machine->tempHash, sizeof(machine->tempHash), nullptr, 0);
+		machine->initScratchpad(machine->tempHash);
+	}
+
+	void randomx_calculate_hash_next(randomx_vm* machine, const void* nextInput, size_t nextInputSize, void* output) {
+		machine->resetRoundingMode();
+		for (uint32_t chain = 0; chain < RANDOMX_PROGRAM_COUNT - 1; ++chain) {
+			machine->run(machine->tempHash);
+			blake2b(machine->tempHash, sizeof(machine->tempHash), machine->getRegisterFile(), sizeof(randomx::RegisterFile), nullptr, 0);
+		}
+		machine->run(machine->tempHash);
+
+		// Finish current hash and fill the scratchpad for the next hash at the same time
+		yespower_hash(nextInput, nextInputSize, machine->tempHash);
+		k12(machine->tempHash, sizeof(machine->tempHash), machine->tempHash);
+		blake2b(machine->tempHash, sizeof(machine->tempHash), machine->tempHash, sizeof(machine->tempHash), nullptr, 0);
+		machine->hashAndFill(output, RANDOMX_HASH_SIZE, machine->tempHash);
+	}
+
+	void randomx_calculate_hash_last(randomx_vm* machine, void* output) {
+		machine->resetRoundingMode();
+		for (int chain = 0; chain < RANDOMX_PROGRAM_COUNT - 1; ++chain) {
+			machine->run(machine->tempHash);
+			blake2b(machine->tempHash, sizeof(machine->tempHash), machine->getRegisterFile(), sizeof(randomx::RegisterFile), nullptr, 0);
+		}
+		machine->run(machine->tempHash);
+		machine->getFinalResult(output, RANDOMX_HASH_SIZE);
+	}
 }

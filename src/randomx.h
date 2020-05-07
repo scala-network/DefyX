@@ -30,6 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RANDOMX_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define RANDOMX_HASH_SIZE 32
 #define RANDOMX_DATASET_ITEM_SIZE 64
@@ -44,16 +45,48 @@ typedef enum {
   RANDOMX_FLAG_HARD_AES = 2,
   RANDOMX_FLAG_FULL_MEM = 4,
   RANDOMX_FLAG_JIT = 8,
-  RANDOMX_FLAG_SECURE = 16
+  RANDOMX_FLAG_SECURE = 16,
+  RANDOMX_FLAG_ARGON2_SSSE3 = 32,
+  RANDOMX_FLAG_ARGON2_AVX2 = 64,
+  RANDOMX_FLAG_ARGON2 = 96
 } randomx_flags;
 
 typedef struct randomx_dataset randomx_dataset;
 typedef struct randomx_cache randomx_cache;
 typedef struct randomx_vm randomx_vm;
 
+
 #if defined(__cplusplus)
+
+#ifdef __cpp_constexpr
+#define CONSTEXPR constexpr
+#else
+#define CONSTEXPR
+#endif
+
+inline CONSTEXPR randomx_flags operator |(randomx_flags a, randomx_flags b) {
+	return static_cast<randomx_flags>(static_cast<int>(a) | static_cast<int>(b));
+}
+inline CONSTEXPR randomx_flags operator &(randomx_flags a, randomx_flags b) {
+	return static_cast<randomx_flags>(static_cast<int>(a) & static_cast<int>(b));
+}
+inline randomx_flags& operator |=(randomx_flags& a, randomx_flags b) {
+	return a = a | b;
+}
+
 extern "C" {
 #endif
+
+/**
+ * @return The recommended flags to be used on the current machine.
+ *         Does not include:
+ *            RANDOMX_FLAG_LARGE_PAGES
+ *            RANDOMX_FLAG_FULL_MEM
+ *            RANDOMX_FLAG_SECURE
+ *         These flags must be added manually if desired.
+ *         On OpenBSD RANDOMX_FLAG_SECURE is enabled by default in JIT mode as W^X is enforced by the OS.
+ */
+RANDOMX_EXPORT randomx_flags randomx_get_flags(void);
 
 /**
  * Creates a randomx_cache structure and allocates memory for RandomX Cache.
@@ -62,10 +95,17 @@ extern "C" {
  *        RANDOMX_FLAG_LARGE_PAGES - allocate memory in large pages
  *        RANDOMX_FLAG_JIT - create cache structure with JIT compilation support; this makes
  *                           subsequent Dataset initialization faster
+ *        Optionally, one of these two flags may be selected:
+ *        RANDOMX_FLAG_ARGON2_SSSE3 - optimized Argon2 for CPUs with the SSSE3 instruction set
+ *                                   makes subsequent cache initialization faster
+ *        RANDOMX_FLAG_ARGON2_AVX2 - optimized Argon2 for CPUs with the AVX2 instruction set
+ *                                   makes subsequent cache initialization faster
  *
  * @return Pointer to an allocated randomx_cache structure.
- *         NULL is returned if memory allocation fails or if the RANDOMX_FLAG_JIT
- *         is set and JIT compilation is not supported on the current platform.
+ *         Returns NULL if:
+ *         (1) memory allocation fails
+ *         (2) the RANDOMX_FLAG_JIT is set and JIT compilation is not supported on the current platform
+ *         (3) an invalid or unsupported RANDOMX_FLAG_ARGON2 value is set
  */
 RANDOMX_EXPORT randomx_cache *randomx_alloc_cache(randomx_flags flags);
 
@@ -198,6 +238,25 @@ RANDOMX_EXPORT void randomx_destroy_vm(randomx_vm *machine);
  *        be NULL and at least RANDOMX_HASH_SIZE bytes must be available for writing.
 */
 RANDOMX_EXPORT void randomx_calculate_hash(randomx_vm *machine, const void *input, size_t inputSize, void *output);
+
+/**
+ * Set of functions used to calculate multiple RandomX hashes more efficiently.
+ * randomx_calculate_hash_first will begin a hash calculation.
+ * randomx_calculate_hash_next  will output the hash value of the previous input
+ *                              and begin the calculation of the next hash.
+ * randomx_calculate_hash_last  will output the hash value of the previous input.
+ *
+ * @param machine is a pointer to a randomx_vm structure. Must not be NULL.
+ * @param input is a pointer to memory to be hashed. Must not be NULL.
+ * @param inputSize is the number of bytes to be hashed.
+ * @param nextInput is a pointer to memory to be hashed for the next hash. Must not be NULL.
+ * @param nextInputSize is the number of bytes to be hashed for the next hash.
+ * @param output is a pointer to memory where the hash will be stored. Must not
+ *        be NULL and at least RANDOMX_HASH_SIZE bytes must be available for writing.
+*/
+RANDOMX_EXPORT void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize);
+RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, const void* nextInput, size_t nextInputSize, void* output);
+RANDOMX_EXPORT void randomx_calculate_hash_last(randomx_vm* machine, void* output);
 
 #if defined(__cplusplus)
 }

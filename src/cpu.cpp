@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2019, tevador <tevador@gmail.com>
+Copyright (c) 2019, tevador <tevador@gmail.com>
 
 All rights reserved.
 
@@ -26,35 +26,47 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <new>
-#include "allocator.hpp"
-#include "intrin_portable.h"
-#include "virtual_memory.hpp"
-#include "common.hpp"
+#include "cpu.hpp"
+
+#if defined(_M_X64) || defined(__x86_64__)
+	#define HAVE_CPUID
+	#ifdef _WIN32
+		#include <intrin.h>
+		#define cpuid(info, x) __cpuidex(info, x, 0)
+	#else //GCC
+		#include <cpuid.h>
+		void cpuid(int info[4], int InfoType) {
+			__cpuid_count(InfoType, 0, info[0], info[1], info[2], info[3]);
+		}
+	#endif
+#endif
+
+#if defined(HAVE_HWCAP)
+	#include <sys/auxv.h>
+	#include <asm/hwcap.h>
+#endif
 
 namespace randomx {
 
-	template<size_t alignment>
-	void* AlignedAllocator<alignment>::allocMemory(size_t count) {
-		void *mem = rx_aligned_alloc(count, alignment);
-		if (mem == nullptr)
-			throw std::bad_alloc();
-		return mem;
+	Cpu::Cpu() : aes_(false), ssse3_(false), avx2_(false) {
+#ifdef HAVE_CPUID
+		int info[4];
+		cpuid(info, 0);
+		int nIds = info[0];
+		if (nIds >= 0x00000001) {
+			cpuid(info, 0x00000001);
+			ssse3_ = (info[2] & (1 << 9)) != 0;
+			aes_ = (info[2] & (1 << 25)) != 0;
+		}
+		if (nIds >= 0x00000007) {
+			cpuid(info, 0x00000007);
+			avx2_ = (info[1] & (1 << 5)) != 0;
+		}
+#elif defined(__aarch64__) && defined(HWCAP_AES)
+		long hwcaps = getauxval(AT_HWCAP);
+		aes_ = (hwcaps & HWCAP_AES) != 0;
+#endif
+		//TODO POWER8 AES
 	}
-
-	template<size_t alignment>
-	void AlignedAllocator<alignment>::freeMemory(void* ptr, size_t count) {
-		rx_aligned_free(ptr);
-	}
-
-	template struct AlignedAllocator<CacheLineSize>;
-
-	void* LargePageAllocator::allocMemory(size_t count) {
-		return allocLargePagesMemory(count);
-	}
-
-	void LargePageAllocator::freeMemory(void* ptr, size_t count) {
-		freePagedMemory(ptr, count);
-	};
 
 }
