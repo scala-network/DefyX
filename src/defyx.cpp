@@ -283,8 +283,8 @@ extern "C" {
 		assert(output != nullptr);
 		alignas(16) uint64_t tempHash[8];
 		int blakeResult = blake2b(tempHash, sizeof(tempHash), input, inputSize, nullptr, 0);
-		int yescryptRH = sipesh(tempHash, sizeof(tempHash), input, inputSize, input, inputSize, 0, 0);
-		int kangarooTwelve = k12(input, inputSize, tempHash);
+		int yespowerRH = yespower_hash(tempHash, sizeof(tempHash), tempHash);
+		int kangarooTwelve = k12(tempHash, sizeof(tempHash), tempHash);
 		assert(blakeResult == 0);
 		machine->initScratchpad(&tempHash);
 		machine->resetRoundingMode();

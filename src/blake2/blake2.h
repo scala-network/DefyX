@@ -91,7 +91,6 @@ extern "C" {
 	int blake2b_init_param(blake2b_state *S, const blake2b_param *P);
 	int blake2b_update(blake2b_state *S, const void *in, size_t inlen);
 	int blake2b_final(blake2b_state *S, void *out, size_t outlen);
-	int sipesh(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost);
 	int k12(const void *data, size_t length, void *hash);
 
 	/* Simple API */
@@ -101,6 +100,9 @@ extern "C" {
 	/* Argon2 Team - Begin Code */
 	int rxa2_blake2b_long(void *out, size_t outlen, const void *in, size_t inlen);
 	/* Argon2 Team - End Code */
+
+	/* Yespower */
+	int yespower_hash(const void *data, size_t length, void *hash);
 
 #if defined(__cplusplus)
 }

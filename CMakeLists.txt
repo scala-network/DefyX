@@ -51,15 +51,10 @@ src/virtual_machine.cpp
 src/vm_compiled_light.cpp
 src/blake2/blake2b.c
 src/blake2/sha256.c
-src/blake2/yescrypt-best.c
 src/blake2/KangarooTwelve.c
 src/blake2/KeccakP-1600-reference.c
 src/blake2/KeccakSpongeWidth1600.c
-src/blake2/yescrypt-common.c
-src/blake2/yescrypt-platform.c
-src/blake2/yescrypt-ref.c
-src/blake2/yescrypt-simd.c
-src/blake2/yescrypt-opt.c)
+src/blake2/yespower-opt.c)
 
 if(NOT ARCH_ID)
   # allow cross compiling

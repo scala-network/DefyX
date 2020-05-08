@@ -40,15 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "blake2.h"
 #include "blake2-impl.h"
 
-#include "yescrypt.h"
 #include "KangarooTwelve.h"
 #include "sha256.h"
 #include "sysendian.h"
-
-#define YESCRYPT_FLAGS YESCRYPT_RW
-#define YESCRYPT_BASE_N 2048
-#define YESCRYPT_R 8
-#define YESCRYPT_P 1
+#include "yespower.h"
+#include "KangarooTwelve.h"
 
 static const uint64_t blake2b_IV[8] = {
 	UINT64_C(0x6a09e667f3bcc908), UINT64_C(0xbb67ae8584caa73b),
@@ -115,20 +111,20 @@ int blake2b_init_param(blake2b_state *S, const blake2b_param *P) {
 	return 0;
 }
 
-int sipesh(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost)
+/* Yespower Hash function */
+int yespower_hash(const void *data, size_t length, void *hash)
 {
-	yescrypt_local_t local;
-	int retval;
+		yespower_params_t params = {
+		.version = YESPOWER_1_0,
+		.N = 2048,
+		.r = 8,
+		.pers = NULL
+		};
 
-	if (yescrypt_init_local(&local))
-		return -1;
-	retval = yescrypt_kdf(NULL, &local, in, inlen, salt, saltlen,
-	    (uint64_t)YESCRYPT_BASE_N << m_cost, YESCRYPT_R, YESCRYPT_P,
-	    t_cost, 0, YESCRYPT_FLAGS, out, outlen);
-	if (yescrypt_free_local(&local))
-		return -1;
-	return retval;
+		int finale_yespower = yespower_tls((const uint8_t *)data, length, &params, (yespower_binary_t *)hash);
+		return finale_yespower; //0 for success
 }
+
 
 int k12(const void *data, size_t length, void *hash)
 {
